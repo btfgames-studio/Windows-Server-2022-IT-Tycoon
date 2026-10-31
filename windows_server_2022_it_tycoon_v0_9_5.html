@@ -1,0 +1,2990 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Server 2022 IT Tycoon v0.9.5</title>
+    <!-- Chart.js pour le camembert du dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Canvas Confetti pour la célébration Toast -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --bg-main: #f3f3f3;
+            --bg-card: #ffffff;
+            --bg-sidebar: #1e1e1e;
+            --text-main: #000000;
+            --text-muted: #666666;
+            --border-card: #dcdcdc;
+            --topbar-bg: #ffffff;
+            --table-th: #ffffff;
+            --table-border: #eeeeee;
+        }
+
+        body.dark-mode {
+            --bg-main: #121212;
+            --bg-card: #1e1e1e;
+            --bg-sidebar: #0d0d0d;
+            --text-main: #e0e0e0;
+            --text-muted: #aaaaaa;
+            --border-card: #333333;
+            --topbar-bg: #1a1a1a;
+            --table-th: #252525;
+            --table-border: #333333;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            background-color: var(--bg-main); 
+            color: var(--text-main);
+            display: flex; 
+            flex-direction: column;
+            height: 100vh; 
+            overflow: hidden;
+            font-size: 13px;
+            user-select: none;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .top-bar {
+            background-color: var(--topbar-bg);
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border-card);
+        }
+        .top-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #0078d7;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .company-lvl-badge {
+            background-color: #8a8a8a;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            transition: background-color 0.4s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .rainbow-badge {
+            background: linear-gradient(120deg, #e63946, #f4a261, #e9c46a, #2a9d8f, #457b9d, #6a0572);
+            background-size: 200% 200%;
+            animation: slowRainbow 6s ease-in-out infinite alternate;
+            color: white;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+        }
+        @keyframes slowRainbow { 
+            0% { background-position: 0% 50%; } 
+            100% { background-position: 100% 50%; } 
+        }
+
+        .star-icon {
+            color: #ffd700;
+            text-shadow: 0 0 3px rgba(0,0,0,0.5);
+            font-size: 13px;
+        }
+
+        .resources-display {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .res-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.05);
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--border-card);
+        }
+        .res-money { color: #107c10; }
+        .res-data { color: #0078d7; }
+
+        .app-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 48px);
+        }
+
+        .sidebar { 
+            width: 230px; 
+            background-color: var(--bg-sidebar); 
+            color: #cccccc;
+            display: flex; 
+            flex-direction: column; 
+            padding-top: 10px;
+            justify-content: space-between;
+        }
+        .nav-item { 
+            padding: 10px 15px; 
+            cursor: pointer; 
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav-item:hover:not(.locked-nav) { background-color: #333333; color: #ffffff; }
+        .nav-item.active { background-color: #0078d7; color: #ffffff; }
+        .nav-item.locked-nav { opacity: 0.45; cursor: not-allowed; }
+        .nav-item .lock-tag {
+            font-size: 10px;
+            background: #444;
+            color: #aaa;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .nav-section {
+            padding: 15px 20px 5px 20px;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #888888;
+            font-weight: 600;
+        }
+        .badge-count {
+            background: #d83b01;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .main-content { 
+            flex: 1; 
+            padding: 20px 30px; 
+            background-color: var(--bg-main); 
+            overflow-y: auto; 
+        }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        
+        .page-title {
+            font-size: 24px;
+            font-weight: 300;
+            color: var(--text-main);
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .card { 
+            background: var(--bg-card); 
+            border: 1px solid var(--border-card); 
+            margin-bottom: 20px;
+        }
+        .card-header {
+            padding: 10px 15px;
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--table-border);
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .card-header.green-strip { border-top: 4px solid #107c10; }
+        .card-header.blue-strip { border-top: 4px solid #0078d7; }
+        .card-header.red-strip { border-top: 4px solid #d83b01; }
+        .card-header.purple-strip { border-top: 4px solid #8e8e8e; }
+        .card-header.orange-strip { border-top: 4px solid #ff8c00; }
+        .card-content { padding: 15px; }
+
+        .stat-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            padding: 15px;
+        }
+        .stat-kpi-box {
+            background: rgba(0,0,0,0.02);
+            border: 1px solid var(--border-card);
+            padding: 15px;
+            text-align: center;
+            border-radius: 4px;
+        }
+        .stat-kpi-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .stat-kpi-value {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .clicker-box {
+            text-align: center;
+            padding: 25px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .click-btn {
+            background-color: #0078d7;
+            color: white;
+            border: none;
+            padding: 16px 36px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #005a9e;
+            transition: transform 0.05s, box-shadow 0.05s;
+        }
+        .click-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #005a9e;
+        }
+
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+        }
+        .candidate-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+        .candidate-card.lvl-1 { border-top: 4px solid #8a8a8a; }
+        .candidate-card.lvl-2 { border-top: 4px solid #107c10; }
+        .candidate-card.lvl-3 { border-top: 4px solid #0078d7; }
+        .candidate-card.lvl-4 { border-top: 4px solid #ff8c00; }
+        .candidate-card.lvl-5 { 
+            border: 2px solid transparent;
+            border-image: linear-gradient(135deg, red, orange, yellow, green, blue, indigo, violet) 1;
+            background: linear-gradient(var(--bg-card), var(--bg-card)) padding-box,
+                        linear-gradient(135deg, red, orange, yellow, green, blue, indigo, violet) border-box;
+        }
+
+        .rarity-badge {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        .lvl-1 .rarity-badge { background: #e1e1e1; color: #333; }
+        .lvl-2 .rarity-badge { background: #dff6dd; color: #107c10; }
+        .lvl-3 .rarity-badge { background: #cce4f7; color: #0078d7; }
+        .lvl-4 .rarity-badge { background: #fff4ce; color: #b75c00; }
+        .lvl-5 .rarity-badge { 
+            background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff); 
+            color: white; 
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .buy-btn {
+            background-color: #107c10;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .buy-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .floating-pop {
+            position: absolute;
+            font-weight: bold;
+            font-size: 16px;
+            color: #107c10;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 100;
+        }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-30px); }
+        }
+
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+        }
+        .toast {
+            background: var(--bg-card);
+            border-left: 5px solid #107c10;
+            color: var(--text-main);
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 320px;
+            animation: slideInRight 0.4s ease-out forwards, fadeOutToast 0.5s 4.5s forwards;
+            pointer-events: auto;
+        }
+        .toast h4 { margin: 0 0 5px 0; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+        .toast p { margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeOutToast {
+            from { opacity: 1; }
+            to { opacity: 0; transform: translateY(20px); }
+        }
+
+        .progress-bg {
+            width: 100%;
+            background-color: rgba(0,0,0,0.1);
+            height: 14px;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #0078d7;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        .progress-bar.break { background-color: #d83b01; }
+
+        .fixed-table-container {
+            max-height: 280px;
+            overflow-y: auto;
+            display: block;
+        }
+        .fixed-table-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .fixed-table-container thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background-color: var(--table-th);
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--table-border); color: var(--text-main); }
+        th { background-color: var(--table-th); color: var(--text-muted); font-weight: 400; border-bottom: 1px solid var(--border-card); }
+        
+        .btn-action {
+            padding: 6px 14px;
+            background-color: #e1e1e1;
+            border: 1px solid #adadad;
+            cursor: pointer;
+            font-size: 12px;
+            color: #000;
+        }
+        .btn-action:hover:not(:disabled) { background-color: #cce4f7; border-color: #0078d7; }
+        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-danger {
+            background-color: #d83b01;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .btn-danger:hover { background-color: #a82e00; }
+
+        .chart-container {
+            width: 100%;
+            max-width: 420px;
+            margin: 0 auto;
+            height: 250px;
+        }
+        
+        .lock-overlay {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            padding: 30px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.65);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-backdrop.active { display: flex; }
+        .modal-card {
+            background: var(--bg-card);
+            color: var(--text-main);
+            width: 480px;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-top: 6px solid #d83b01;
+            position: relative;
+        }
+        .modal-card h2 { margin-top: 0; font-size: 18px; }
+        .modal-card p { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+        .modal-options { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .modal-btn {
+            padding: 12px 15px;
+            background: rgba(0,0,0,0.05);
+            border: 1px solid var(--border-card);
+            color: var(--text-main);
+            text-align: left;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .modal-btn:hover { background: #0078d7; color: white; border-color: #0078d7; font-weight: bold; }
+
+        .minigame-box {
+            background: #1e1e1e;
+            color: white;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 15px;
+            position: relative;
+            user-select: none;
+        }
+        .minigame-timer {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ff8c00;
+            text-align: right;
+            margin-bottom: 10px;
+        }
+
+        .patch-panel-grid {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            padding: 10px 0;
+        }
+        .wire-column { display: flex; flex-direction: column; gap: 12px; }
+        .wire-item {
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            font-size: 11px;
+            border: 2px solid transparent;
+            transition: transform 0.1s;
+        }
+        .wire-item.selected { border-color: #ffffff; transform: scale(1.08); box-shadow: 0 0 10px rgba(255,255,255,0.8); }
+        .wire-blue { background: #0078d7; color: white; }
+        .wire-red { background: #d83b01; color: white; }
+        .wire-yellow { background: #ffb900; color: black; }
+        .wire-green { background: #107c10; color: white; }
+        .port-item {
+            background: #333;
+            border: 2px dashed #666;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            text-align: center;
+        }
+        .port-item.connected { border-style: solid; }
+
+        .dust-container {
+            width: 100%;
+            height: 180px;
+            background: #111;
+            border: 2px solid #444;
+            position: relative;
+            overflow: hidden;
+            border-radius: 6px;
+            cursor: crosshair;
+        }
+        .dust-fan {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 70px;
+            animation: spin 3s linear infinite;
+        }
+        @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+        .dust-cloud {
+            position: absolute;
+            background: rgba(120, 120, 120, 0.9);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .pass-seq-display {
+            font-size: 28px;
+            letter-spacing: 12px;
+            font-weight: bold;
+            text-align: center;
+            background: #0d0d0d;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            border: 1px solid #333;
+        }
+        .pass-char { color: #00ff00; }
+        .pass-char.done { color: #666666; }
+
+        .task-list-box {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #111;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        .task-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #222;
+            padding: 8px 12px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .firewall-pkt {
+            background: #222;
+            padding: 12px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .energy-dots { display: inline-flex; gap: 3px; }
+        .energy-dot { width: 10px; height: 10px; border-radius: 50%; background: #555; }
+        .energy-dot.full { background: #ff8c00; }
+
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .achievement-card {
+            background: rgba(0,0,0,0.03);
+            border: 1px solid var(--border-card);
+            padding: 10px;
+            border-radius: 4px;
+            opacity: 0.5;
+            transition: all 0.3s;
+        }
+        .achievement-card.unlocked {
+            opacity: 1;
+            background: rgba(16, 124, 16, 0.08);
+            border-color: #107c10;
+        }
+        .achievement-card.star-achievement.unlocked {
+            background: rgba(255, 215, 0, 0.12);
+            border-color: #ffb700;
+        }
+        .achievement-card h4 { margin: 0 0 5px 0; font-size: 12px; }
+        .achievement-card p { margin: 0; font-size: 11px; color: var(--text-muted); }
+
+        .collectibles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .collectible-card {
+            background: rgba(0,0,0,0.03);
+            border: 1px solid var(--border-card);
+            padding: 15px;
+            text-align: center;
+            border-radius: 6px;
+            opacity: 0.35;
+            filter: grayscale(100%);
+            transition: all 0.3s;
+        }
+        .collectible-card.found {
+            opacity: 1;
+            filter: grayscale(0%);
+            background: rgba(0, 120, 215, 0.08);
+            border-color: #0078d7;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+        }
+        .collectible-icon { font-size: 32px; margin-bottom: 8px; }
+        .collectible-title { font-weight: bold; font-size: 12px; margin-bottom: 4px; }
+        .collectible-buff { font-size: 11px; color: #107c10; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <div class="top-bar">
+        <div class="top-title">
+            Windows Server 2022 IT Tycoon <span style="font-size: 11px; opacity:0.7;">v0.9.5</span>
+            <span class="company-lvl-badge" id="company-lvl-display">
+                <span id="company-name-text">Entreprise Niveau 1</span>
+                <span id="company-stars-span"></span>
+            </span>
+        </div>
+        <div class="resources-display">
+            <div class="res-item res-money">💵 Budget : <span id="val-money">0</span> $</div>
+            <div class="res-item res-data">💾 Data : <span id="val-data">0</span> Mo</div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <div class="sidebar">
+            <div>
+                <div class="nav-item active" onclick="showPanel('dashboard', this)">Tableau de bord</div>
+                <div class="nav-item locked-nav" id="nav-incidents" onclick="showPanel('incidents', this)">
+                    <span>⚠️ Helpdesk / Incidents</span>
+                    <span id="badge-incidents" class="badge-count" style="display:none;">0</span>
+                    <span class="lock-tag" id="lock-tag-incidents">Niv. 2</span>
+                </div>
+                <div class="nav-item locked-nav" id="nav-recruitment" onclick="showPanel('recruitment', this)">
+                    <span>👨‍💻 Recrutement Techs</span>
+                    <span class="lock-tag" id="lock-tag-recruitment">Niv. 2</span>
+                </div>
+                <div class="nav-item locked-nav" id="nav-rh" onclick="showPanel('rh', this)">
+                    <span>👔 Ressources Humaines</span>
+                    <span class="lock-tag" id="lock-tag-rh">Niv. 3</span>
+                </div>
+                <div class="nav-item locked-nav" id="nav-happiness" onclick="showPanel('happiness', this)">
+                    <span>😊 Happiness Managers</span>
+                    <span class="lock-tag" id="lock-tag-happiness">Niv. 2</span>
+                </div>
+                <div class="nav-item" onclick="showPanel('shop', this)">🛒 Magasin / Infra</div>
+                
+                <div class="nav-section">Investissement</div>
+                <div class="nav-item locked-nav" id="nav-investments" onclick="showPanel('investments', this)">
+                    <span>📈 Bourse & IA</span>
+                    <span class="lock-tag" id="lock-tag-investments">Niv. 4</span>
+                </div>
+
+                <div class="nav-section">Supervision</div>
+                <div class="nav-item" id="nav-hyperv" onclick="showPanel('hyperv', this)">
+                    <span>🖥️ Supervision VMs</span>
+                    <span id="badge-crashed-vms" class="badge-count" style="display:none;">0 CRASH</span>
+                </div>
+                
+                <div class="nav-section">Système</div>
+                <div class="nav-item" onclick="showPanel('achievements-panel', this)">
+                    <span>🏆 Succès & Souvenirs</span>
+                    <span id="badge-achievements" class="badge-count" style="background:#0078d7;">0</span>
+                </div>
+                <div class="nav-item" onclick="showPanel('settings', this)">⚙️ Paramètres</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="dashboard" class="panel active">
+                <h1 class="page-title">Tableau de bord de gestion</h1>
+
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-header orange-strip">Statistiques Globales depuis le Début</div>
+                    <div class="card-content" style="padding: 0;">
+                        <div class="stat-kpi-grid">
+                            <div class="stat-kpi-box">
+                                <div class="stat-kpi-label">Gain Total de Budget</div>
+                                <div class="stat-kpi-value" id="stat-kpi-money" style="color: #107c10;">0 $</div>
+                            </div>
+                            <div class="stat-kpi-box">
+                                <div class="stat-kpi-label">DATA Totale Produite</div>
+                                <div class="stat-kpi-value" id="stat-kpi-data" style="color: #0078d7;">0 Mo</div>
+                            </div>
+                            <div class="stat-kpi-box">
+                                <div class="stat-kpi-label">Incidents Résolus</div>
+                                <div class="stat-kpi-value" id="stat-kpi-incidents" style="color: #ff8c00;">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="clicker-box" style="margin-bottom:0;">
+                        <h2 style="margin-top:0; font-weight: 300;">Maintenance Serveur Manuel</h2>
+                        <p style="color:var(--text-muted);">Cliquez pour effectuer des tâches d'administration et générer du budget !</p>
+                        <button class="click-btn" onclick="clickServer(event)">💻 Administrer (+<span id="click-power">1</span>$)</button>
+                        <p id="admin-bot-status" style="font-size:11px; color:#107c10; display:none; margin-top:10px;">🤖 Assistant Admin Actif (1 clic/sec)</p>
+                    </div>
+
+                    <div class="card" style="margin-bottom:0;">
+                        <div class="card-header purple-strip">Niveau d'Entreprise</div>
+                        <div class="card-content">
+                            <p>Atteignez le quota de DATA pour promouvoir votre entreprise et débloquer de nouveaux services !</p>
+                            <p><strong>Niveau Actuel :</strong> <span id="dash-lvl-text">Niveau 1</span></p>
+                            <p><strong>Prochain Niveau :</strong> <span id="dash-next-lvl-cost">500</span> DATA</p>
+                            <button id="btn-upgrade-company" class="btn-action" style="width:100%; padding: 10px; font-weight:bold;" onclick="upgradeCompanyLevel()">Promouvoir l'entreprise (Payer en DATA)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <div class="card" style="margin-bottom:0;">
+                        <div class="card-header green-strip">Production de DATA</div>
+                        <div class="card-content">
+                            <table>
+                                <tr><td>Nombre de VMs actives</td><td id="stat-vm-count">0</td></tr>
+                                <tr><td>OS Actuel du Parc</td><td id="stat-os-version" style="font-weight:bold; color:#0078d7;">Windows XP (+0 DATA)</td></tr>
+                                <tr><td>Barettes RAM appliquées</td><td id="stat-ram-count">0</td></tr>
+                                <tr><td>Data Centers actifs</td><td id="stat-dc-count">0</td></tr>
+                                <tr><td>Vitesse du cycle</td><td id="stat-speed">5.0 sec / cycle</td></tr>
+                                <tr><td>Production totale par cycle</td><td id="stat-prod-rate">0 Mo</td></tr>
+                                <tr>
+                                    <td>Cycle de DATA</td>
+                                    <td>
+                                        <div class="progress-bg"><div id="data-cycle-bar" class="progress-bar"></div></div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom:0;">
+                        <div class="card-header blue-strip">Répartition des Incidents Résolus</div>
+                        <div class="card-content">
+                            <div class="chart-container">
+                                <canvas id="techStatsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="incidents" class="panel">
+                <h1 class="page-title">Centre de Support - Incidents Clients</h1>
+                
+                <div id="incidents-lock-msg" class="lock-overlay" style="display:none;">
+                    <h3>🔒 Service verrouillé</h3>
+                    <p>Débloquez le <strong>Niveau 2 d'entreprise</strong> et recrutez votre premier Technicien pour commencer à recevoir des tickets d'incidents.</p>
+                </div>
+
+                <div id="incidents-content">
+                    <div class="card">
+                        <div class="card-header red-strip">Tickets d'incidents ouverts</div>
+                        <div class="card-content" style="padding:0;">
+                            <div class="fixed-table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID Ticket</th>
+                                            <th>Service</th>
+                                            <th>Incident</th>
+                                            <th>Récompense</th>
+                                            <th>Technicien affecté</th>
+                                            <th>Progression résolution</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="incident-list-body">
+                                        <tr><td colspan="6" style="text-align:center; color:#888;">Aucun incident en cours...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header green-strip">Équipe Techniciens en Poste (<span id="tech-active-count">0</span> / <span id="tech-max-count">5</span>)</div>
+                        <div class="card-content" style="padding:0;">
+                            <div class="fixed-table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Nom</th>
+                                            <th>Niveau Rareté</th>
+                                            <th>Réservoir Énergie</th>
+                                            <th>Statut / Temps de Pause</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="hired-tech-list">
+                                        <tr><td colspan="5" style="text-align:center; color:#888;">Aucun technicien recruté.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="recruitment" class="panel">
+                <h1 class="page-title">Cabinet de Recrutement IT</h1>
+                
+                <div id="recruitment-lock-msg" class="lock-overlay" style="display:none;">
+                    <h3>🔒 Recrutement Indisponible</h3>
+                    <p>Vous devez atteindre le <strong>Niveau 2 d'entreprise</strong> pour débloquer le recrutement de techniciens.</p>
+                </div>
+
+                <div id="recruitment-content">
+                    <p style="color:var(--text-muted); margin-bottom: 15px;">Recrutez des techniciens. Chaque incident consomme 1 point d'énergie. À zéro, ils partent en pause !</p>
+                    
+                    <div class="toolbar" style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+                        <button id="btn-refresh-candidates" class="btn-action" onclick="manualRefreshCandidates()">🔄 Actualiser la liste (1 000 $)</button>
+                        <span style="font-size: 11px; color: var(--text-muted);" id="proba-text">Proba : Lvl 1 (100%)</span>
+                    </div>
+
+                    <div class="shop-grid" id="candidates-container"></div>
+                </div>
+            </div>
+
+            <div id="rh" class="panel">
+                <h1 class="page-title">Département Ressources Humaines (RH)</h1>
+                
+                <div id="rh-lock-msg" class="lock-overlay" style="display:none;">
+                    <h3>🔒 Service RH verrouillé</h3>
+                    <p>Vous devez atteindre le <strong>Niveau 3 d'entreprise</strong> pour recruter des chargés de RH.</p>
+                </div>
+
+                <div id="rh-content">
+                    <div class="card">
+                        <div class="card-header green-strip">Gestion des RH & Capacité de l'équipe</div>
+                        <div class="card-content">
+                            <p style="color:var(--text-muted);">Chaque Chargé RH recruté augmente la limite maximale de techniciens de <strong>+5 slots</strong> et débloque un niveau supérieur de rareté de techniciens dans le cabinet de recrutement !</p>
+                            
+                            <table style="max-width: 500px; margin-bottom: 20px;">
+                                <tr><td>Chargés RH recrutés</td><td><strong id="rh-count">0</strong> / 3 (Max)</td></tr>
+                                <tr><td>Capacité max de techniciens</td><td><strong id="rh-slots">5</strong> Techniciens</td></tr>
+                                <tr><td>Rareté max de tech débloquée</td><td><strong id="rh-max-tech-lvl">Niveau 1</strong></td></tr>
+                                <tr><td>Coût du prochain Chargé RH</td><td><strong id="rh-cost">2 000</strong> $</td></tr>
+                            </table>
+
+                            <button id="btn-buy-rh" class="btn-action" onclick="buyRH(event)">Recruter un Chargé RH (+5 slots techs & Rareté sup)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="happiness" class="panel">
+                <h1 class="page-title">Gestion de la Qualité de Vie au Travail (QVT)</h1>
+                
+                <div id="happiness-lock-msg" class="lock-overlay" style="display:none;">
+                    <h3>🔒 Service QVT verrouillé</h3>
+                    <p>Vous devez atteindre le <strong>Niveau 2 d'entreprise</strong> pour recruter des Happiness Managers.</p>
+                </div>
+
+                <div id="happiness-content">
+                    <div class="card">
+                        <div class="card-header green-strip">Happiness Managers</div>
+                        <div class="card-content">
+                            <p style="color:var(--text-muted);">Chaque Happiness Manager réduit la durée des pauses clope/déj de vos techniciens de <strong>-5%</strong>.</p>
+                            
+                            <table style="max-width: 500px; margin-bottom: 20px;">
+                                <tr><td>Happiness Managers recrutés</td><td><strong id="hm-count">0</strong> / 6 (Max -30% pause)</td></tr>
+                                <tr><td>Réduction des pauses actuelle</td><td><strong id="hm-bonus" style="color:#107c10;">-0%</strong></td></tr>
+                                <tr><td>Coût du prochain Happiness Manager</td><td><strong id="hm-cost">500</strong> $</td></tr>
+                            </table>
+
+                            <button id="btn-buy-hm" class="btn-action" onclick="buyHappinessManager(event)">Recruter un Happiness Manager (-5% durée des pauses)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="shop" class="panel">
+                <h1 class="page-title">Boutique d'infrastructure & Systèmes</h1>
+                
+                <div class="card" style="margin-bottom: 25px;">
+                    <div class="card-header blue-strip">🪟 Mises à niveau du Système d'Exploitation (Versions de Windows)</div>
+                    <div class="card-content">
+                        <p style="color:var(--text-muted);">Toutes vos VMs démarrent sous <strong>Windows XP</strong> par défaut. Achetez un nouvel OS pour le déployer sur l'ensemble de votre parc ! La nouvelle version remplace la précédente.</p>
+                        <div class="shop-grid" id="win-os-grid"></div>
+                    </div>
+                </div>
+
+                <h2 style="font-weight: 300; margin-bottom: 15px;">Infrastructures & Équipements</h2>
+                <div class="shop-grid">
+                    <div class="shop-item candidate-card">
+                        <div>
+                            <h3>Serveur Virtuel (VM)</h3>
+                            <p style="color:var(--text-muted); font-size: 11px;">Génère de la DATA à chaque cycle (5 sec).</p>
+                        </div>
+                        <div>
+                            <p><strong>Prix :</strong> <span id="vm-cost">50</span> $</p>
+                            <button id="btn-buy-vm" class="buy-btn" style="width: 100%;" onclick="buyVM(event)">Acheter une VM</button>
+                        </div>
+                    </div>
+                    
+                    <div class="shop-item candidate-card">
+                        <div>
+                            <h3>Optimisation des clics</h3>
+                            <p style="color:var(--text-muted); font-size: 11px;">Augmente la puissance de chaque clic manuel (+1$/clic).</p>
+                        </div>
+                        <div>
+                            <p><strong>Prix :</strong> <span id="click-upgrade-cost">50</span> $</p>
+                            <button id="btn-buy-click" class="buy-btn" style="width: 100%;" onclick="upgradeClick(event)">Améliorer (+1$/clic)</button>
+                        </div>
+                    </div>
+
+                    <div class="shop-item candidate-card" id="shop-cooling-item">
+                        <div>
+                            <h3>Système de Refroidissement Avancé</h3>
+                            <p style="color:var(--text-muted); font-size: 11px;">Climatisation cryogénique pour la baie. <strong>Empêche définitivement TOUT crash de VM !</strong></p>
+                            <p style="font-size: 10px; color:#0078d7;">Requis : Entreprise Niveau 4</p>
+                        </div>
+                        <div>
+                            <p><strong>Prix :</strong> <span id="cooling-cost">50 000</span> $</p>
+                            <button id="btn-buy-cooling" class="buy-btn" style="width: 100%;" onclick="buyAdvancedCooling(event)">Acheter Système Anti-Crash</button>
+                        </div>
+                    </div>
+
+                    <div class="shop-item candidate-card" id="shop-bot-item">
+                        <div>
+                            <h3>Assistant Administration</h3>
+                            <p style="color:var(--text-muted); font-size: 11px;">Effectue un clic d'administration automatique toutes les secondes.</p>
+                            <p style="font-size: 10px; color:#0078d7;">Requis : Entreprise Niveau 2</p>
+                        </div>
+                        <div>
+                            <p><strong>Prix :</strong> <span id="admin-bot-cost">500</span> $</p>
+                            <button id="btn-buy-admin-bot" class="buy-btn" style="width: 100%;" onclick="buyAdminBot(event)">Acheter Assistant</button>
+                        </div>
+                    </div>
+
+                    <div class="shop-item candidate-card" id="shop-fast-helpdesk-item">
+                        <div>
+                            <h3>Helpdesk Express</h3>
+                            <p style="color:var(--text-muted); font-size: 11px;">Double la vitesse de génération des tickets d'incidents clients (x2).</p>
+                            <p style="font-size: 10px; color:#0078d7;">Requis : Entreprise Niveau 3</p>
+                        </div>
+                        <div>
+                            <p><strong>Prix :</strong> <span id="fast-helpdesk-cost">2 500</span> $</p>
+                            <button id="btn-buy-fast-helpdesk" class="buy-btn" style="width: 100%;" onclick="buyFastHelpdesk(event)">Acheter Accélérateur</button>
+                        </div>
+                    </div>
+
+                    <div class="shop-item candidate-card" id="shop-ultra-helpdesk-item">
+                        <div>
+                            <h3>Helpdesk Ultra</h3>
+                            <p style="color:var(--text-muted); font-size: 11px;">Quadruple la vitesse de génération des tickets d'incidents clients (x4).</p>
+                            <p style="font-size: 10px; color:#0078d7;">Requis : Entreprise Niveau 4</p>
+                        </div>
+                        <div>
+                            <p><strong>Prix :</strong> <span id="ultra-helpdesk-cost">5 000</span> $</p>
+                            <button id="btn-buy-ultra-helpdesk" class="buy-btn" style="width: 100%;" onclick="buyUltraHelpdesk(event)">Acheter Boost x4</button>
+                        </div>
+                    </div>
+
+                    <div class="shop-item candidate-card" id="shop-ram-item">
+                        <div>
+                            <h3>Barette de RAM (VM Upgrade)</h3>
+                            <p style="color:var(--text-muted); font-size: 11px;">Améliore une VM possédée (génère +2 DATA au lieu de 1 par cycle).</p>
+                            <p style="font-size: 10px; color:#0078d7;">Requis : Entreprise Niveau 3</p>
+                        </div>
+                        <div>
+                            <p><strong>Prix :</strong> <span id="ram-cost">300</span> $</p>
+                            <button id="btn-buy-ram" class="buy-btn" style="width: 100%;" onclick="buyRAM(event)">Ajouter RAM</button>
+                        </div>
+                    </div>
+
+                    <div class="shop-item candidate-card" id="shop-dc-item">
+                        <div>
+                            <h3>Data Center</h3>
+                            <p style="color:var(--text-muted); font-size: 11px;">Infrastructure massive générant +5 DATA autonomes par cycle.</p>
+                            <p style="font-size: 10px; color:#0078d7;">Requis : Entreprise Niveau 5</p>
+                        </div>
+                        <div>
+                            <p><strong>Prix :</strong> <span id="dc-cost">5 000</span> $</p>
+                            <button id="btn-buy-dc" class="buy-btn" style="width: 100%;" onclick="buyDataCenter(event)">Acheter Data Center</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="investments" class="panel">
+                <h1 class="page-title">Investissement Boursier & Technologies IA</h1>
+
+                <div id="investments-lock-msg" class="lock-overlay" style="display:none;">
+                    <h3>🔒 Service d'Investissement Verrouillé</h3>
+                    <p>Débloquez le <strong>Niveau 4 d'entreprise</strong> pour commencer à placer vos fonds en Bourse et intégrer l'IA.</p>
+                </div>
+
+                <div id="investments-content">
+                    <div class="card">
+                        <div class="card-header blue-strip">📈 Portefeuille d'Actions Boursières</div>
+                        <div class="card-content">
+                            <p style="color:var(--text-muted);">Achetez des parts d'entreprises majeures pour percevoir des dividendes automatiques à chaque cycle de DATA.</p>
+                            <div class="shop-grid" id="stock-market-grid"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header purple-strip">🤖 Modèles & Infrastructure IA (Productivité & DATA)</div>
+                        <div class="card-content">
+                            <p style="color:var(--text-muted);">Intégrez des modèles d'IA pour booster la vitesse de traitement de vos techniciens et augmenter la récolte de Data.</p>
+                            <div class="shop-grid" id="ai-tech-grid"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="achievements-panel" class="panel">
+                <h1 class="page-title">Distinctions & Souvenirs d'Entreprise</h1>
+                <div class="card">
+                    <div class="card-header purple-strip">Succès Débloqués (<span id="achievements-unlocked-count">0</span> / <span id="achievements-total-count">22</span>)</div>
+                    <div class="card-content">
+                        <div class="achievement-grid" id="achievements-container"></div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header blue-strip">🏆 Armoire de Présentation des Objets de Collection</div>
+                    <div class="card-content">
+                        <p style="color:var(--text-muted);">Chaque incident résolu a <strong>1% de chances</strong> de vous faire découvrir un objet de collection unique dans les tiroirs du support. <strong>Chaque objet trouvé offre un bonus permanent de +5% sur les gains d'argent !</strong></p>
+                        <p><strong>Bonus cumulé actuel :</strong> <span id="collectible-total-buff" style="color:#107c10; font-weight:bold;">+0%</span> sur les revenus</p>
+                        
+                        <div class="collectibles-grid" id="collectibles-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings" class="panel">
+                <h1 class="page-title">Paramètres & Gestion de la partie</h1>
+                
+                <div class="card">
+                    <div class="card-header blue-strip">Apparence & Affichage</div>
+                    <div class="card-content">
+                        <p>Choisissez le thème d'affichage de votre interface :</p>
+                        <button class="btn-action" onclick="toggleDarkMode(false)">☀️ Mode Jour</button>
+                        <button class="btn-action" onclick="toggleDarkMode(true)">🌙 Mode Nuit</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header green-strip">Sauvegarde & Transfert de données</div>
+                    <div class="card-content">
+                        <p>Exportez ou importez votre progression :</p>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn-action" onclick="exportSave()">💾 Exporter ma sauvegarde</button>
+                            <button class="btn-action" onclick="importSave()">📂 Importer une sauvegarde</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header orange-strip">🛠️ Mode Test / Admin</div>
+                    <div class="card-content">
+                        <p>Le mode Admin permet de rajouter facilement des ressources pour tester les fonctionnalités du jeu.</p>
+                        
+                        <div id="admin-login-box" style="display:flex; gap:10px; align-items:center;">
+                            <input type="password" id="admin-pass-input" placeholder="Mot de passe" style="padding:6px 10px; border:1px solid var(--border-card); border-radius:3px; background:var(--bg-card); color:var(--text-main);">
+                            <button class="btn-action" style="font-weight:bold; background:#0078d7; color:white; border:none;" onclick="unlockAdmin()">🔓 Débloquer Mode Admin</button>
+                        </div>
+                        
+                        <div id="admin-unlocked-box" style="display:none; gap:15px; align-items:center;">
+                            <span style="color:#107c10; font-weight:bold;">✅ Mode Admin Déverrouillé</span>
+                            <button class="btn-action" style="font-weight:bold; background:#107c10; color:white; border:none;" onclick="grantAdminBonus()">💰 Ajouter +10 000$ & DATA</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header red-strip">Réinitialisation complète</div>
+                    <div class="card-content">
+                        <p style="color:#d83b01;">Attention : Cette action efface définitivement toute votre progression actuelle.</p>
+                        <button class="btn-danger" style="padding:10px 15px;" onclick="resetGameProgress()">⚠️ Réinitialiser ma progression</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="hyperv" class="panel">
+                <h1 class="page-title">Supervision Hyper-V</h1>
+                <div class="card">
+                    <div class="card-header green-strip" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>Infrastructure Virtuelle (<span id="hyperv-vm-count">0</span> VMs)</span>
+                        <span id="hyperv-cooling-badge" style="font-size:11px; background:#107c10; color:white; padding:2px 8px; border-radius:3px; display:none;">❄️ Refroidissement Avancé Actif</span>
+                    </div>
+                    <div class="card-content" style="padding:0;">
+                        <table>
+                            <thead>
+                                <tr><th>Nom VM</th><th>Système d'Exploitation</th><th>Statut</th><th>RAM Optimisée</th><th>Production DATA</th><th>Action / Maintenance</th></tr>
+                            </thead>
+                            <tbody id="vm-list-body">
+                                <tr><td colspan="6" style="text-align:center; color:#888;">Aucune VM installée...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="event-modal" class="modal-backdrop">
+        <div class="modal-card">
+            <h2 id="event-title">⚡ Événement d'Entreprise</h2>
+            <p id="event-desc">Description de l'événement...</p>
+            <div id="minigame-container"></div>
+            <div class="modal-options" id="event-options"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- ÉTAT DU JEU ---
+        let money = 0;
+        let data = 0;
+        let clickPower = 1;
+        let totalMoneyEarned = 0;
+        let totalDataProduced = 0;
+        let totalIncidentsResolved = 0;
+        let minigamesWonCount = 0;
+
+        let isAdminUnlocked = false;
+
+        let hasAdminBot = false;
+        let adminBotCost = 500;
+        let hasFastHelpdesk = false;
+        let fastHelpdeskCost = 2500;
+        let hasUltraHelpdesk = false;
+        let ultraHelpdeskCost = 5000;
+        let hasAdvancedCooling = false;
+        let coolingCost = 50000;
+
+        let hasNotifiedUpgradeAvailable = false;
+
+        let companyLevel = 1;
+        const COMPANY_UPGRADE_COSTS = {
+            1: 500,    
+            2: 2500,   
+            3: 10000,  
+            4: 50000   
+        };
+
+        const COMPANY_LEVEL_COLORS = {
+            1: "#8a8a8a",
+            2: "#107c10",
+            3: "#0078d7",
+            4: "#6b29b1",
+            5: "#ff8c00"
+        };
+        
+        let currentWindowsVersion = 0; 
+        const WINDOWS_VERSIONS = [
+            { id: 0, name: "Windows XP", minLvl: 1, cost: 0, bonus: 0, desc: "OS de base installé sur chaque VM." },
+            { id: 1, name: "Windows Vista", minLvl: 2, cost: 1500, bonus: 1, desc: "Augmente la production de DATA de chaque VM de +1." },
+            { id: 2, name: "Windows 7", minLvl: 3, cost: 5000, bonus: 2, desc: "Augmente la production de DATA de chaque VM de +2." },
+            { id: 3, name: "Windows 10", minLvl: 4, cost: 15000, bonus: 3, desc: "Augmente la production de DATA de chaque VM de +3." },
+            { id: 4, name: "Windows 11", minLvl: 5, cost: 40000, bonus: 4, desc: "Augmente la production de DATA de chaque VM de +4." }
+        ];
+
+        let vmCount = 0; let vmCost = 50; let clickUpgradeCost = 50;
+        let ramCount = 0; let ramCost = 300;
+        let dcCount = 0; let dcCost = 5000;
+
+        let baseCycleTime = 5.0;
+        let currentCycleTime = 5.0;
+        let cycleProgress = 0;
+        let lastTickTimestamp = Date.now();
+
+        let rhCount = 0; let rhMax = 3; let rhBaseCost = 2000;
+        let hmCount = 0; let hmMax = 6; let hmBaseCost = 500;
+
+        let candidateDiscount = false;
+        let candidates = [];
+        let hiredTechs = [];
+        let incidents = [];
+        let vmStates = [];
+        let vmGlobalCrashCooldown = 0;
+        let strikeCooldownTimer = 0;
+        let minigameTimerInterval = null;
+        let ticketIdCounter = 101;
+        let incidentSpawnerStarted = false;
+
+        let techChart = null;
+
+        const FIXED_STOCK_KEYS = ["google", "nvidia", "claude", "chatgpt"];
+        let stocks = {
+            google: { name: "Google (GOOGL)", count: 0, cost: 2500, dividend: 30 },
+            nvidia: { name: "Nvidia (NVDA)", count: 0, cost: 3000, dividend: 35 },
+            claude: { name: "Anthropic Claude", count: 0, cost: 4000, dividend: 50 },
+            chatgpt: { name: "OpenAI ChatGPT", count: 0, cost: 5000, dividend: 65 }
+        };
+
+        let aiTechs = {
+            copilot: { name: "Copilot IT", bought: false, cost: 6000, dataBonus: 3, speedBonusPct: 0.15 },
+            claudeDev: { name: "Claude 3.5 Sonnet Agent", bought: false, cost: 12000, dataBonus: 8, speedBonusPct: 0.30 }
+        };
+
+        const COLLECTIBLES_CATALOG = [
+            { id: "carrot", name: "Carotte", icon: "🥕", desc: "Trouvée derrière la baie de brassage." },
+            { id: "nerf", name: "Balle de Nerf", icon: "🟡", desc: "Souvenir d'une guerre d'open-space." },
+            { id: "mug", name: "Tasse de café", icon: "☕", desc: "L'élixir vital de l'équipe IT." },
+            { id: "podo", name: "Trophée du PodoQuizz", icon: "🏆", desc: "Prix de la culture générale informatique." },
+            { id: "cigs", name: "Paquet de clopes", icon: "🚬", desc: "Compagnon incontournable des pauses rézo." },
+            { id: "phone", name: "Smartphone", icon: "📱", desc: "Affiche 42 appels manqués du support." },
+            { id: "badge", name: "Badge d'entreprise", icon: "🪪", desc: "Laisse passer tous les accès serveurs." }
+        ];
+
+        let unlockedCollectibles = [];
+
+        const LEGENDARY_NAMES = ["Romain", "Aurélien", "Thibaud", "Anaïs", "Kajetan"];
+
+        const TECH_LEVELS = {
+            1: { name: "Niveau 1 - Stagiaire", maxEnergy: 5, breakTime: 60, cost: 50, speedMult: 1.0, colorClass: "lvl-1" },    
+            2: { name: "Niveau 2 - Tech Junior", maxEnergy: 6, breakTime: 50, cost: 150, speedMult: 1.0, colorClass: "lvl-2" }, 
+            3: { name: "Niveau 3 - Admin Sys", maxEnergy: 8, breakTime: 40, cost: 400, speedMult: 1.0, colorClass: "lvl-3" },    
+            4: { name: "Niveau 4 - Expert Cloud", maxEnergy: 10, breakTime: 30, cost: 1000, speedMult: 1.0, colorClass: "lvl-4" },
+            5: { name: "Niveau 5 - Légende IT 🌈", maxEnergy: Infinity, breakTime: 0, cost: 5000, speedMult: 2.0, colorClass: "lvl-5" }
+        };
+
+        const FIRST_NAMES = [
+            "Alex", "Camille", "Lucas", "Sonia", "Julien", "Eva", "Thomas", "Yannis", "Clara", "Léo", "Mathieu", "Sarah",
+            "Maxime", "Inès", "Hugo", "Manon", "Antoine", "Chloé", "Enzo", "Léa", "Nathan", "Océane", "Gabriel", "Margaux",
+            "Clément", "Julie", "Sébastien", "Amandine", "Benoît", "Audrey", "Nicolas", "Élodie", "Florian", "Laura", "Quentin",
+            "Pauline", "Valentin", "Marion", "Guillaume", "Alicia", "Adrien", "Célia", "Simon", "Charlotte", "Kévin", "Agathe"
+        ];
+        
+        const INCIDENT_TYPES = [
+            { service: "AD DS", desc: "Verrouillage de compte utilisateur", reward: 80, baseResolveTime: 5 },
+            { service: "DHCP", desc: "Pénurie d'adresses IP sur plage", reward: 160, baseResolveTime: 8 },
+            { service: "Impression", desc: "Bourrage papier spooler bloqué", reward: 220, baseResolveTime: 10 },
+            { service: "DNS", desc: "Panne de résolution de nom de domaine", reward: 350, baseResolveTime: 12 },
+            { service: "PKI / SSL", desc: "Certificat SSL expiré sur portail web", reward: 450, baseResolveTime: 14 },
+            { service: "Réseau", desc: "Commutateur de cœur d'isolation H.S.", reward: 600, baseResolveTime: 16 },
+            { service: "Sécurité", desc: "Tentative d'attaque DDoS détectée", reward: 850, baseResolveTime: 20 },
+            { service: "Stockage SAN", desc: "Espace disque LUN saturé à 99%", reward: 1100, baseResolveTime: 22 }
+        ];
+
+        const ACHIEVEMENTS = [
+            { id: "lvl2", title: "Startup IT", desc: "Atteindre le Niveau 2 d'entreprise", reward: 1000, condition: () => companyLevel >= 2 },
+            { id: "lvl3", title: "PME Technologique", desc: "Atteindre le Niveau 3 d'entreprise", reward: 5000, condition: () => companyLevel >= 3 },
+            { id: "lvl4", title: "Grande Entreprise", desc: "Atteindre le Niveau 4 d'entreprise", reward: 20000, condition: () => companyLevel >= 4 },
+            { id: "tech5", title: "Équipe de Base", desc: "Avoir 5 techniciens en poste", reward: 1000, condition: () => hiredTechs.length >= 5 },
+            { id: "tech10", title: "Département IT", desc: "Avoir 10 techniciens en poste", reward: 5000, condition: () => hiredTechs.length >= 10 },
+            { id: "tech15", title: "Armée de Techs", desc: "Avoir 15 techniciens en poste", reward: 15000, condition: () => hiredTechs.length >= 15 },
+            { id: "tech20", title: "Bataillon du Support", desc: "Avoir 20 techniciens en poste", reward: 30000, condition: () => hiredTechs.length >= 20 },
+            { id: "legendary1", title: "Légende IT 🌈", desc: "Recruter au moins un Technicien Légendaire (Niveau 5)", reward: 10000, condition: () => hiredTechs.some(t => t.level === 5) },
+            { id: "rh1", title: "Gestion RH", desc: "Recruter un Chargé RH", reward: 1000, condition: () => rhCount >= 1 },
+            { id: "rh3", title: "Directeur RH", desc: "Recruter 3 Chargés RH (Max)", reward: 5000, condition: () => rhCount >= 3 },
+            { id: "hm1", title: "Responsable QVT", desc: "Recruter un Happiness Manager", reward: 500, condition: () => hmCount >= 1 },
+            { id: "hm6", title: "Bien-être Absolu", desc: "Recruter 6 Happiness Managers (Max)", reward: 3000, condition: () => hmCount >= 6 },
+            { id: "vm10", title: "Parc Virtuel", desc: "Posséder 10 Serveurs Virtuels (VMs)", reward: 2000, condition: () => vmCount >= 10 },
+            { id: "vm25", title: "Ferme de Serveurs", desc: "Posséder 25 Serveurs Virtuels (VMs)", reward: 10000, condition: () => vmCount >= 25 },
+            { id: "bot", title: "Autonomie", desc: "Acheter l'Assistant Administration", reward: 500, condition: () => hasAdminBot },
+            { id: "dc1", title: "Cloud Master", desc: "Acheter 1 Data Center", reward: 10000, condition: () => dcCount >= 1 },
+            { id: "tickets25", title: "Centre d'Appel", desc: "Résoudre 25 incidents au total", reward: 2500, condition: () => totalIncidentsResolved >= 25 },
+            { id: "mg5", title: "Technicien Habile", desc: "Réussir 5 mini-jeux", reward: 2000, condition: () => minigamesWonCount >= 5 },
+            { id: "mg10", title: "Expert Interventions", desc: "Réussir 10 mini-jeux", reward: 5000, condition: () => minigamesWonCount >= 10 },
+            { id: "mg15", title: "Maître du Dépannage", desc: "Réussir 15 mini-jeux", reward: 15000, condition: () => minigamesWonCount >= 15 },
+            { id: "star_collectibles", isStar: true, title: "⭐ Maître Collectionneur", desc: "Débloquer les 7 objets de collection (+1⭐ Badge)", reward: 100000, condition: () => unlockedCollectibles.length >= 7 },
+            { id: "star_legendaries", isStar: true, title: "⭐ Légendes Réunies", desc: "Recruter les 5 techniciens Niveau 5 uniques (+1⭐ Badge)", reward: 100000, condition: () => LEGENDARY_NAMES.every(name => hiredTechs.some(t => t.name === name)) },
+            { id: "star_lvl5", isStar: true, title: "⭐ Sommet IT", desc: "Atteindre le Niveau 5 d'entreprise (+1⭐ Badge)", reward: 100000, condition: () => companyLevel >= 5 }
+        ];
+
+        let unlockedAchievements = [];
+
+        function getCollectibleMoneyMultiplier() {
+            return 1 + (unlockedCollectibles.length * 0.05);
+        }
+
+        function getStarsCount() {
+            let count = 0;
+            if (unlockedAchievements.includes("star_collectibles")) count++;
+            if (unlockedAchievements.includes("star_legendaries")) count++;
+            if (unlockedAchievements.includes("star_lvl5")) count++;
+            return count;
+        }
+
+        function spawnToastNotification(title, message, type = "success", triggerConfetti = false) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            let color = type === "success" ? "#107c10" : (type === "info" ? "#0078d7" : "#d83b01");
+            toast.style.borderLeftColor = color;
+            let icon = type === "success" ? "🏆" : (type === "info" ? "🚀" : "🛠️");
+
+            toast.innerHTML = `<h4 style="color:${color};">${icon} ${title}</h4><p>${message}</p>`;
+            container.appendChild(toast);
+
+            if (triggerConfetti && typeof confetti === 'function') {
+                confetti({ particleCount: 80, spread: 60, origin: { x: 0.85, y: 0.85 } });
+            }
+            
+            setTimeout(() => { toast.remove(); }, 5000);
+        }
+
+        function tryDropCollectible() {
+            // PROBABILITÉ DE DROP FIXÉE À 1%
+            if (Math.random() < 0.01) {
+                const remaining = COLLECTIBLES_CATALOG.filter(c => !unlockedCollectibles.includes(c.id));
+                if (remaining.length > 0) {
+                    const found = remaining[Math.floor(Math.random() * remaining.length)];
+                    unlockedCollectibles.push(found.id);
+                    spawnToastNotification(`Objet Découvert : ${found.name} ${found.icon}`, `${found.desc} (+5% permanent sur vos revenus !)`, "success", true);
+                    renderCollectibles();
+                    checkAchievements();
+                    updateUI();
+                }
+            }
+        }
+
+        function renderCollectibles() {
+            const container = document.getElementById('collectibles-container');
+            if (!container) return;
+            container.innerHTML = "";
+
+            COLLECTIBLES_CATALOG.forEach(item => {
+                const isFound = unlockedCollectibles.includes(item.id);
+                const card = document.createElement('div');
+                card.className = `collectible-card ${isFound ? 'found' : ''}`;
+                card.innerHTML = `
+                    <div class="collectible-icon">${item.icon}</div>
+                    <div class="collectible-title">${isFound ? item.name : '???'}</div>
+                    <div style="font-size:10px; color:var(--text-muted); margin-bottom:6px;">${isFound ? item.desc : 'Objet masqué'}</div>
+                    <div class="collectible-buff">${isFound ? '+5% Revenue' : '🔒 Inconnu'}</div>
+                `;
+                container.appendChild(card);
+            });
+
+            const totalBuffPct = unlockedCollectibles.length * 5;
+            document.getElementById('collectible-total-buff').innerText = `+${totalBuffPct}%`;
+        }
+
+        function unlockAdmin() {
+            const pwd = document.getElementById('admin-pass-input').value;
+            if (pwd === "272793") {
+                isAdminUnlocked = true;
+                updateAdminUI();
+                spawnToastNotification("Mode Admin Activé", "Vous pouvez ajouter des ressources en permanence.", "success");
+            } else {
+                alert("Mot de passe incorrect !");
+            }
+        }
+
+        function grantAdminBonus() {
+            if (isAdminUnlocked) {
+                money += 10000;
+                data += 10000;
+                totalMoneyEarned += 10000;
+                totalDataProduced += 10000;
+                spawnToastNotification("Ressources Ajoutées", "+10 000 $ et +10 000 Mo ajoutés.", "success");
+                updateUI();
+            }
+        }
+
+        function updateAdminUI() {
+            if (isAdminUnlocked) {
+                document.getElementById('admin-login-box').style.display = 'none';
+                document.getElementById('admin-unlocked-box').style.display = 'flex';
+            } else {
+                document.getElementById('admin-login-box').style.display = 'flex';
+                document.getElementById('admin-unlocked-box').style.display = 'none';
+            }
+        }
+
+        function checkAchievements() {
+            ACHIEVEMENTS.forEach(ach => {
+                if (!unlockedAchievements.includes(ach.id) && ach.condition()) {
+                    unlockedAchievements.push(ach.id);
+                    let gain = Math.floor(ach.reward * getCollectibleMoneyMultiplier());
+                    money += gain;
+                    totalMoneyEarned += gain;
+                    spawnToastNotification(`Succès Débloqué : ${ach.title}`, `Vous avez gagné +${gain.toLocaleString()} $ !`, "success", true);
+                    renderAchievements();
+                    updateUI();
+                }
+            });
+        }
+
+        function renderAchievements() {
+            const container = document.getElementById('achievements-container');
+            if (!container) return;
+            container.innerHTML = "";
+
+            let count = 0;
+            ACHIEVEMENTS.forEach(ach => {
+                const isUnlocked = unlockedAchievements.includes(ach.id);
+                if (isUnlocked) count++;
+
+                const card = document.createElement('div');
+                card.className = `achievement-card ${ach.isStar ? 'star-achievement' : ''} ${isUnlocked ? 'unlocked' : ''}`;
+                card.innerHTML = `
+                    <h4>${isUnlocked ? '✅' : '🔒'} ${ach.title}</h4>
+                    <p>${ach.desc}</p>
+                    <p style="color:#107c10; font-weight:bold; margin-top:4px;">Gain : +${ach.reward.toLocaleString()} $</p>
+                `;
+                container.appendChild(card);
+            });
+
+            document.getElementById('achievements-unlocked-count').innerText = count;
+            document.getElementById('achievements-total-count').innerText = ACHIEVEMENTS.length;
+            document.getElementById('badge-achievements').innerText = count;
+        }
+
+        function checkPromotionAvailability() {
+            let cost = COMPANY_UPGRADE_COSTS[companyLevel];
+            if (cost && data >= cost && !hasNotifiedUpgradeAvailable) {
+                hasNotifiedUpgradeAvailable = true;
+                spawnToastNotification("Promotion Disponible !", `Rendez-vous sur le Tableau de bord pour passer au Niveau ${companyLevel + 1}.`, "info");
+            }
+        }
+
+        function spawnFloatingText(event, text = "+1") {
+            if (!event || !event.clientX) return;
+            const el = document.createElement('div');
+            el.className = 'floating-pop';
+            el.innerText = text;
+            const x = event.clientX;
+            const y = event.clientY;
+            el.style.left = (x - 10) + 'px';
+            el.style.top = (y - 20) + 'px';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        function toggleDarkMode(isDark) {
+            if (isDark) document.body.classList.add('dark-mode');
+            else document.body.classList.remove('dark-mode');
+        }
+
+        function showPanel(panelId, element) {
+            if (element.classList.contains('locked-nav')) return;
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(panelId).classList.add('active');
+            element.classList.add('active');
+            if (panelId === 'dashboard') updateChart();
+        }
+
+        function upgradeCompanyLevel() {
+            let cost = COMPANY_UPGRADE_COSTS[companyLevel];
+            if (cost && data >= cost) {
+                data -= cost;
+                companyLevel++;
+                hasNotifiedUpgradeAvailable = false;
+                spawnToastNotification("Entreprise Promue !", `Félicitations, vous êtes passé au Niveau ${companyLevel} !`, "info", true);
+                generateCandidatesList();
+                checkAchievements();
+                updateUI();
+            }
+        }
+
+        function buyWindowsOS(osId) {
+            const os = WINDOWS_VERSIONS[osId];
+            if (companyLevel >= os.minLvl && currentWindowsVersion < osId && money >= os.cost) {
+                money -= os.cost;
+                currentWindowsVersion = osId;
+                spawnToastNotification("Migraton OS Effectuée", `Votre parc de VMs a basculé sous ${os.name} !`, "success", true);
+                updateVMList();
+                updateUI();
+            }
+        }
+
+        function renderWindowsOSShop() {
+            const grid = document.getElementById('win-os-grid');
+            if (!grid) return;
+            grid.innerHTML = "";
+
+            WINDOWS_VERSIONS.slice(1).forEach(os => {
+                const isBought = currentWindowsVersion >= os.id;
+                const isCurrent = currentWindowsVersion === os.id;
+                const isLocked = companyLevel < os.minLvl;
+
+                const card = document.createElement('div');
+                card.className = "candidate-card";
+                card.innerHTML = `
+                    <div>
+                        <h3>${os.name}</h3>
+                        <p style="color:var(--text-muted); font-size: 11px;">${os.desc}</p>
+                        <p style="font-size: 10px; color:#0078d7;">Requis : Entreprise Niveau ${os.minLvl}</p>
+                    </div>
+                    <div>
+                        <p><strong>Prix :</strong> ${os.cost.toLocaleString()} $</p>
+                        <button class="buy-btn" style="width: 100%;" ${isBought || isLocked || money < os.cost ? 'disabled' : ''} onclick="buyWindowsOS(${os.id})">
+                            ${isCurrent ? 'Actif' : (isBought ? 'Inclus' : 'Déployer OS')}
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function clickServer(e) {
+            let earned = Math.floor(clickPower * getCollectibleMoneyMultiplier());
+            money += earned;
+            totalMoneyEarned += earned;
+            spawnFloatingText(e, `+${earned}$`);
+            checkAchievements();
+            updateUI();
+        }
+
+        function buyVM(e) {
+            if (money >= vmCost) {
+                money -= vmCost;
+                vmCount++;
+                vmStates.push({ isCrashed: false, repairTech: null, repairTimer: 0 });
+                vmCost = Math.floor(vmCost * 1.3);
+                currentCycleTime = Math.max(0.5, baseCycleTime - (vmCount * 0.1));
+                spawnFloatingText(e, "+1 VM");
+                updateVMList();
+                checkAchievements();
+                updateUI();
+            }
+        }
+
+        function upgradeClick(e) {
+            if (money >= clickUpgradeCost) {
+                money -= clickUpgradeCost;
+                clickPower += 1;
+                clickUpgradeCost = Math.floor(clickUpgradeCost * 2.2);
+                spawnFloatingText(e, "+1$/clic");
+                updateUI();
+            }
+        }
+
+        function buyAdminBot(e) {
+            if (companyLevel >= 2 && !hasAdminBot && money >= adminBotCost) {
+                money -= adminBotCost;
+                hasAdminBot = true;
+                spawnFloatingText(e, "+Bot Admin");
+                checkAchievements();
+                updateUI();
+            }
+        }
+
+        function buyAdvancedCooling(e) {
+            if (companyLevel >= 4 && !hasAdvancedCooling && money >= coolingCost) {
+                money -= coolingCost;
+                hasAdvancedCooling = true;
+                vmStates.forEach(v => { v.isCrashed = false; v.repairTech = null; v.repairTimer = 0; });
+                spawnFloatingText(e, "+Refroidissement");
+                spawnToastNotification("Système Cryogénique Actif", "Vos VMs ne subiront plus jamais aucun crash !", "success", true);
+                updateVMList();
+                updateUI();
+            }
+        }
+
+        function buyFastHelpdesk(e) {
+            if (companyLevel >= 3 && !hasFastHelpdesk && money >= fastHelpdeskCost) {
+                money -= fastHelpdeskCost;
+                hasFastHelpdesk = true;
+                spawnFloatingText(e, "+Helpdesk Express");
+                updateUI();
+            }
+        }
+
+        function buyUltraHelpdesk(e) {
+            if (companyLevel >= 4 && !hasUltraHelpdesk && money >= ultraHelpdeskCost) {
+                money -= ultraHelpdeskCost;
+                hasUltraHelpdesk = true;
+                spawnFloatingText(e, "+Helpdesk Ultra (x4)");
+                updateUI();
+            }
+        }
+
+        function buyRAM(e) {
+            if (companyLevel >= 3 && ramCount < vmCount && money >= ramCost) {
+                money -= ramCost;
+                ramCount++;
+                ramCost = Math.floor(ramCost * 1.4);
+                spawnFloatingText(e, "+1 RAM");
+                updateVMList();
+                updateUI();
+            }
+        }
+
+        function buyDataCenter(e) {
+            if (companyLevel >= 5 && money >= dcCost) {
+                money -= dcCost;
+                dcCount++;
+                dcCost = Math.floor(dcCost * 1.5);
+                spawnFloatingText(e, "+1 DC");
+                checkAchievements();
+                updateUI();
+            }
+        }
+
+        function buyStock(key) {
+            let s = stocks[key];
+            if (companyLevel >= 4 && money >= s.cost) {
+                money -= s.cost;
+                s.count++;
+                s.cost = Math.floor(s.cost * 1.25);
+                updateInvestmentsUI();
+                updateUI();
+            }
+        }
+
+        function buyAITech(key) {
+            let ai = aiTechs[key];
+            if (companyLevel >= 4 && !ai.bought && money >= ai.cost) {
+                money -= ai.cost;
+                ai.bought = true;
+                updateInvestmentsUI();
+                updateUI();
+            }
+        }
+
+        function buyRH(e) {
+            let currentCost = Math.floor(rhBaseCost * Math.pow(2.2, rhCount));
+            if (companyLevel >= 3 && rhCount < rhMax && money >= currentCost) {
+                money -= currentCost;
+                rhCount++;
+                spawnFloatingText(e, "+1 RH");
+                generateCandidatesList();
+                checkAchievements();
+                updateUI();
+            }
+        }
+
+        function buyHappinessManager(e) {
+            let currentCost = Math.floor(hmBaseCost * Math.pow(1.8, hmCount));
+            if (companyLevel >= 2 && hmCount < hmMax && money >= currentCost) {
+                money -= currentCost;
+                hmCount++;
+                spawnFloatingText(e, "+1 HM");
+                checkAchievements();
+                updateUI();
+            }
+        }
+
+        function getMaxTechLevelAvailable() {
+            if (companyLevel < 2) return 0;
+            return Math.min(4, 1 + rhCount);
+        }
+
+        function generateCandidate() {
+            const maxLvl = getMaxTechLevelAvailable();
+            if (maxLvl === 0) return null;
+
+            const rand = Math.random() * 100;
+            let level = 1;
+
+            if (rand < 3) {
+                const availableLegs = LEGENDARY_NAMES.filter(name => !hiredTechs.some(t => t.name === name));
+                if (availableLegs.length > 0) level = 5;
+                else level = 4;
+            } else {
+                const subRand = Math.random() * 100;
+                if (maxLvl === 1) level = 1;
+                else if (maxLvl === 2) level = subRand < 60 ? 1 : 2;
+                else if (maxLvl === 3) { if (subRand < 50) level = 1; else if (subRand < 80) level = 2; else level = 3; }
+                else { if (subRand < 46) level = 1; else if (subRand < 74) level = 2; else if (subRand < 89) level = 3; else level = 4; }
+            }
+
+            const cfg = TECH_LEVELS[level];
+            let name = "";
+            if (level === 5) {
+                const availableLegs = LEGENDARY_NAMES.filter(n => !hiredTechs.some(t => t.name === n));
+                name = availableLegs[Math.floor(Math.random() * availableLegs.length)];
+            } else {
+                name = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+            }
+
+            let cost = cfg.cost;
+            if (candidateDiscount && level !== 5) cost = Math.floor(cost * 0.5);
+
+            return {
+                id: Date.now() + Math.random(),
+                name: name,
+                level: level,
+                levelName: cfg.name,
+                maxEnergy: cfg.maxEnergy,
+                energy: cfg.maxEnergy,
+                baseBreakTime: cfg.breakTime,
+                breakTimer: 0,
+                cost: cost,
+                colorClass: cfg.colorClass,
+                speedMult: cfg.speedMult || 1.0,
+                assignedIncidentId: null,
+                assignedIncidentId2: null,
+                canTakeTwo: false,
+                breakDebuffMultiplier: 1.0,
+                nextBreakIncrease: 1.0,
+                resolvedCount: 0,
+                cooldownTimer: 0
+            };
+        }
+
+        // GÉNÉRATION DE 4 SLOTS DE TECHS DANS LE RECRUTEMENT
+        function generateCandidatesList() {
+            if (companyLevel < 2) {
+                candidates = [];
+            } else {
+                candidates = [generateCandidate(), generateCandidate(), generateCandidate(), generateCandidate()].filter(c => c !== null);
+            }
+            renderCandidates();
+        }
+
+        function manualRefreshCandidates() {
+            if (money >= 1000 && companyLevel >= 2) {
+                money -= 1000;
+                generateCandidatesList();
+                updateUI();
+            }
+        }
+
+        function renderCandidates() {
+            const container = document.getElementById('candidates-container');
+            if (!container) return;
+            container.innerHTML = "";
+
+            if (candidates.length === 0) {
+                container.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 30px; background:var(--bg-card); border:1px solid var(--border-card);">Aucun candidat disponible.</div>`;
+                return;
+            }
+
+            candidates.forEach((cand, index) => {
+                const card = document.createElement('div');
+                card.className = `candidate-card ${cand.colorClass}`;
+                
+                let energyStr = cand.level === 5 ? "∞ Illimitée" : `<strong>${cand.maxEnergy} tickets</strong>`;
+                let breakStr = cand.level === 5 ? "Aucune" : `<strong>${cand.baseBreakTime}s</strong>`;
+
+                card.innerHTML = `
+                    <div>
+                        <span class="rarity-badge">${cand.levelName}</span>
+                        <h3 style="margin: 5px 0;">${cand.name} ${cand.level === 5 ? '🌈' : ''}</h3>
+                        <p style="color:var(--text-muted); font-size:11px;">Énergie : ${energyStr} | Pause : ${breakStr}</p>
+                        ${cand.level === 5 ? '<p style="color:#0078d7; font-size:10px; font-weight:bold;">⚡ Résolution 2x plus rapide !</p>' : ''}
+                    </div>
+                    <div>
+                        <p><strong>Prix :</strong> ${cand.cost} $ ${candidateDiscount && cand.level !== 5 ? '<span style="color:red; font-size:10px;">(-50%)</span>' : ''}</p>
+                        <button class="buy-btn" style="width: 100%;" ${money < cand.cost || hiredTechs.length >= (5 + rhCount * 5) ? 'disabled' : ''} onclick="hireCandidate(event, ${index})">Recruter</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function hireCandidate(e, index) {
+            const cand = candidates[index];
+            const maxTechs = 5 + (rhCount * 5);
+
+            if (money >= cand.cost && hiredTechs.length < maxTechs) {
+                money -= cand.cost;
+                hiredTechs.push(cand);
+                candidates.splice(index, 1);
+                candidateDiscount = false;
+
+                spawnFloatingText(e, cand.level === 5 ? "🌈 LÉGENDE !" : "+1 Tech");
+
+                if (!incidentSpawnerStarted) {
+                    incidentSpawnerStarted = true;
+                    scheduleNextIncident();
+                }
+
+                if (candidates.length === 0) generateCandidatesList();
+                else renderCandidates();
+
+                renderHiredTechs();
+                updateChart();
+                checkAchievements();
+                updateUI();
+            }
+        }
+
+        function promptFireTech(index) {
+            const tech = hiredTechs[index];
+            if (!tech) return;
+
+            document.getElementById('event-title').innerText = "🚪 Licenciement de Technicien";
+            document.getElementById('event-desc').innerText = `Voulez-vous vraiment licencier ${tech.name} (${tech.levelName}) ? Ses tickets en cours seront réaffectés.`;
+            document.getElementById('minigame-container').innerHTML = "";
+
+            const optsContainer = document.getElementById('event-options');
+            optsContainer.innerHTML = "";
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = "modal-btn";
+            confirmBtn.style.background = "#d83b01";
+            confirmBtn.style.color = "white";
+            confirmBtn.style.fontWeight = "bold";
+            confirmBtn.innerText = "❌ Confirmer le licenciement";
+            confirmBtn.onclick = () => {
+                executeFireTech(index);
+                document.getElementById('event-modal').classList.remove('active');
+            };
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = "modal-btn";
+            cancelBtn.innerText = "Annuler";
+            cancelBtn.onclick = () => { document.getElementById('event-modal').classList.remove('active'); };
+
+            optsContainer.appendChild(confirmBtn);
+            optsContainer.appendChild(cancelBtn);
+            document.getElementById('event-modal').classList.add('active');
+        }
+
+        function promptBurnoutRetention(tech, techIdx) {
+            document.getElementById('event-title').innerText = "🔥 RISQUE DE BURNOUT / DÉMISSION !";
+            document.getElementById('event-desc').innerText = `Le Technicien Légendaire ${tech.name} 🌈 est surmené et menace de quitter immédiatement l'entreprise !\n\nProposer une prime exceptionnelle de 5 000 $ pour le convaincre de rester ?`;
+            document.getElementById('minigame-container').innerHTML = "";
+
+            const optsContainer = document.getElementById('event-options');
+            optsContainer.innerHTML = "";
+
+            const keepBtn = document.createElement('button');
+            keepBtn.className = "modal-btn";
+            keepBtn.style.background = "#107c10";
+            keepBtn.style.color = "white";
+            keepBtn.style.fontWeight = "bold";
+            keepBtn.innerText = "💵 Verser la prime (5 000 $)";
+            keepBtn.disabled = money < 5000;
+            keepBtn.onclick = () => {
+                money -= 5000;
+                spawnToastNotification("Tech Conservé !", `${tech.name} a accepté la prime et reste en poste !`, "success");
+                document.getElementById('event-modal').classList.remove('active');
+                updateUI();
+            };
+
+            const leaveBtn = document.createElement('button');
+            leaveBtn.className = "modal-btn";
+            leaveBtn.style.background = "#d83b01";
+            leaveBtn.style.color = "white";
+            leaveBtn.innerText = "👋 Refuser (Le laisser partir)";
+            leaveBtn.onclick = () => {
+                executeFireTech(techIdx);
+                spawnToastNotification("Démission Effectuée", `${tech.name} a démissionné.`, "warning");
+                document.getElementById('event-modal').classList.remove('active');
+            };
+
+            optsContainer.appendChild(keepBtn);
+            optsContainer.appendChild(leaveBtn);
+            document.getElementById('event-modal').classList.add('active');
+        }
+
+        function executeFireTech(index) {
+            const tech = hiredTechs[index];
+            if (!tech) return;
+
+            incidents.forEach(inc => {
+                if (inc.assignedTech && inc.assignedTech.id === tech.id) {
+                    inc.assignedTech = null;
+                    inc.progress = 0;
+                }
+            });
+
+            vmStates.forEach(vm => {
+                if (vm.repairTech && vm.repairTech.id === tech.id) {
+                    vm.repairTech = null;
+                    vm.repairTimer = 0;
+                }
+            });
+
+            hiredTechs.splice(index, 1);
+            renderHiredTechs();
+            renderIncidents();
+            updateChart();
+            updateUI();
+        }
+
+        function renderHiredTechs() {
+            const tbody = document.getElementById('hired-tech-list');
+            if (!tbody) return;
+
+            const maxTechs = 5 + (rhCount * 5);
+            document.getElementById('tech-active-count').innerText = hiredTechs.length;
+            document.getElementById('tech-max-count').innerText = maxTechs;
+
+            if (hiredTechs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888;">Aucun technicien recruté.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = "";
+            hiredTechs.forEach((tech, idx) => {
+                const tr = document.createElement('tr');
+                
+                let dotsHtml = "";
+                if (tech.level === 5) {
+                    dotsHtml = `<span style="color:#107c10; font-weight:bold;">🌈 Énergie Illimitée</span>`;
+                } else {
+                    dotsHtml = '<div class="energy-dots">';
+                    for(let i = 0; i < tech.maxEnergy; i++) {
+                        dotsHtml += `<div class="energy-dot ${i < tech.energy ? 'full' : ''}"></div>`;
+                    }
+                    dotsHtml += `</div> (${tech.energy}/${tech.maxEnergy})`;
+                }
+
+                let statusStr = "";
+                if (tech.isStriking) {
+                    const remain = Math.ceil(tech.strikeTimer);
+                    statusStr = `<span style="color:#d83b01; font-weight:bold;">🪧 En grève (${remain}s)</span>`;
+                } else if (tech.cooldownTimer > 0) {
+                    const cd = Math.ceil(tech.cooldownTimer);
+                    statusStr = `<span style="color:#ff8c00; font-weight:bold;">⏳ Repos inter-ticket (${cd}s)</span>`;
+                } else if (tech.energy === 0 && tech.level !== 5) {
+                    const totalBreak = tech.baseBreakTime * (1 - (hmCount * 0.05)) * (tech.breakDebuffMultiplier || 1.0) * (tech.nextBreakIncrease || 1.0);
+                    const pct = Math.min(100, (tech.breakTimer / totalBreak) * 100);
+                    const remain = Math.ceil(totalBreak - tech.breakTimer);
+                    statusStr = `<div style="display:flex; align-items:center; gap:8px;">
+                        <span style="color:#d83b01; font-weight:bold;">☕ Pause (${remain}s)</span>
+                        <div class="progress-bg" style="width:100px;"><div class="progress-bar break" style="width:${pct}%"></div></div>
+                    </div>`;
+                } else {
+                    let activeCount = (tech.assignedIncidentId ? 1 : 0) + (tech.assignedIncidentId2 ? 1 : 0);
+                    if (activeCount > 0) {
+                        statusStr = `<span style="color:#0078d7; font-weight:bold;">En intervention (${activeCount})</span>`;
+                    } else {
+                        statusStr = `<span style="color:#107c10; font-weight:bold;">Prêt</span>`;
+                    }
+                }
+                if (tech.canTakeTwo) statusStr += ` <span style="background:#0078d7; color:white; padding:1px 4px; border-radius:3px; font-size:9px;">⚡ Double</span>`;
+
+                tr.innerHTML = `
+                    <td><strong>${tech.name}</strong> ${tech.level === 5 ? '🌈' : ''}</td>
+                    <td>${tech.levelName}</td>
+                    <td>${dotsHtml}</td>
+                    <td>${statusStr}</td>
+                    <td><button class="btn-danger" onclick="promptFireTech(${idx})">❌ Virer</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function spawnIncident() {
+            if (incidents.length >= 10) return;
+
+            const type = INCIDENT_TYPES[Math.floor(Math.random() * INCIDENT_TYPES.length)];
+            const newIncident = {
+                id: ticketIdCounter++,
+                service: type.service,
+                desc: type.desc,
+                reward: type.reward,
+                duration: type.baseResolveTime,
+                progress: 0,
+                assignedTech: null
+            };
+
+            incidents.push(newIncident);
+            renderIncidents();
+        }
+
+        function renderIncidents() {
+            const tbody = document.getElementById('incident-list-body');
+            const badge = document.getElementById('badge-incidents');
+
+            if (incidents.length > 0) {
+                badge.style.display = "inline-block";
+                badge.innerText = incidents.length;
+            } else {
+                badge.style.display = "none";
+            }
+
+            if (!tbody) return;
+
+            if (incidents.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888;">Aucun incident en cours...</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = "";
+            incidents.forEach(inc => {
+                const tr = document.createElement('tr');
+                const pct = Math.min(100, (inc.progress / inc.duration) * 100);
+                const techName = inc.assignedTech ? `${inc.assignedTech.name} ${inc.assignedTech.level === 5 ? '🌈' : ''}` : `<span style="color:#d83b01;">En attente de tech</span>`;
+                
+                tr.innerHTML = `
+                    <td>#${inc.id}</td>
+                    <td>${inc.service}</td>
+                    <td>${inc.desc}</td>
+                    <td style="color:#107c10; font-weight:bold;">+${inc.reward} $</td>
+                    <td>${techName}</td>
+                    <td style="width:120px;">
+                        <div class="progress-bg"><div class="progress-bar" style="width:${pct}%"></div></div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function processIncidentAssignments() {
+            incidents.forEach(inc => {
+                if (!inc.assignedTech) {
+                    const eligibleTechs = hiredTechs.filter(t => {
+                        if (t.isStriking) return false;
+                        if (t.cooldownTimer > 0) return false;
+                        if (t.energy <= 0 && t.level !== 5) return false;
+                        if (!t.assignedIncidentId) return true;
+                        if (t.canTakeTwo && !t.assignedIncidentId2) return true;
+                        return false;
+                    }).sort((a, b) => b.level - a.level);
+
+                    if (eligibleTechs.length > 0) {
+                        const readyTech = eligibleTechs[0];
+                        inc.assignedTech = readyTech;
+                        if (!readyTech.assignedIncidentId) {
+                            readyTech.assignedIncidentId = inc.id;
+                        } else {
+                            readyTech.assignedIncidentId2 = inc.id;
+                            readyTech.canTakeTwo = false;
+                        }
+                        renderHiredTechs();
+                        renderIncidents();
+                    }
+                }
+            });
+        }
+
+        // --- CATALOGUE DES MINI-JEUX ---
+        const MINIGAMES_TYPES = [
+            { id: "patch", title: "🔌 Câblage de Baie Réseau", desc: "Un commutateur principal est débranché ! Reliez les 4 câbles Ethernet aux ports de la bonne couleur.", rewardMult: 1.0 },
+            { id: "dust", title: "🧹 Dépoussiérage Serveur en Surchauffe", desc: "Le ventilateur principal est obstrué par la poussière ! Cliquez et balayez les 4 nuages de poussière.", rewardMult: 1.2 },
+            { id: "password", title: "🔑 Réinitialisation Mot de Passe AD", desc: "Saisissez au clavier la séquence de 5 lettres. Taper la bonne lettre la grise ; une erreur vous coûte -1 seconde !", rewardMult: 1.0 },
+            { id: "taskmgr", title: "🧱 Processus Malveillant", desc: "Un malware s'exécute dans le système. Repérez et fermez la tâche 'malware.exe' !", rewardMult: 1.1 },
+            { id: "firewall", title: "🧱 Filtrage Pare-Feu", desc: "Des paquets réseau transitent. Autorisez les paquets 'ACCEPT' et rejetez les attaques !", rewardMult: 1.1 }
+        ];
+
+        function triggerMinigamePrompt(mgType) {
+            let penalty = Math.max(200, Math.floor(money * 0.02));
+            let potentialReward = Math.floor(companyLevel * 1500 * getCollectibleMoneyMultiplier());
+
+            document.getElementById('event-title').innerText = `⚠️ ALERT - ${mgType.title}`;
+            document.getElementById('event-desc').innerText = `${mgType.desc}\n\nSouhaitez-vous intervenir immédiatement ?\n✅ Victoire : +${potentialReward.toLocaleString()} $\n❌ Refus : -${penalty.toLocaleString()} $ (Sous-traitance d'urgence)`;
+            document.getElementById('minigame-container').innerHTML = "";
+
+            const opts = document.getElementById('event-options');
+            opts.innerHTML = "";
+
+            const acceptBtn = document.createElement('button');
+            acceptBtn.className = "modal-btn";
+            acceptBtn.style.background = "#107c10";
+            acceptBtn.style.color = "white";
+            acceptBtn.style.fontWeight = "bold";
+            acceptBtn.innerText = "🛠️ Intervenir (Lancer le mini-jeu)";
+            acceptBtn.onclick = () => { startMinigame(mgType.id, potentialReward); };
+
+            const declineBtn = document.createElement('button');
+            declineBtn.className = "modal-btn";
+            declineBtn.style.background = "#d83b01";
+            declineBtn.style.color = "white";
+            declineBtn.innerText = `❌ Déleguer (-${penalty.toLocaleString()} $)`;
+            declineBtn.onclick = () => {
+                money = Math.max(0, money - penalty);
+                spawnToastNotification("Intervention Déléguée", `Vous avez payé une pénalité de -${penalty.toLocaleString()} $.`, "warning");
+                document.getElementById('event-modal').classList.remove('active');
+                updateUI();
+            };
+
+            opts.appendChild(acceptBtn);
+            opts.appendChild(declineBtn);
+            document.getElementById('event-modal').classList.add('active');
+        }
+
+        function startMinigame(mgId, potentialReward) {
+            const container = document.getElementById('minigame-container');
+            const opts = document.getElementById('event-options');
+            opts.innerHTML = "";
+            let timeRemain = 15;
+
+            container.innerHTML = `
+                <div class="minigame-box">
+                    <div class="minigame-timer">⏳ Temps restant : <span id="mg-timer-num">15</span>s</div>
+                    <div id="mg-area"></div>
+                </div>
+            `;
+
+            if (minigameTimerInterval) clearInterval(minigameTimerInterval);
+            minigameTimerInterval = setInterval(() => {
+                timeRemain--;
+                const timerSpan = document.getElementById('mg-timer-num');
+                if (timerSpan) timerSpan.innerText = timeRemain;
+                if (timeRemain <= 0) {
+                    clearInterval(minigameTimerInterval);
+                    finishMinigame(false, 0);
+                }
+            }, 1000);
+
+            const area = document.getElementById('mg-area');
+
+            if (mgId === 'patch') {
+                let selectedWireColor = null;
+                let connectedCount = 0;
+                const colors = ['blue', 'red', 'yellow', 'green'];
+                const names = { blue: "Bleu", red: "Rouge", yellow: "Jaune", green: "Vert" };
+                const shuffledColors = [...colors].sort(() => Math.random() - 0.5);
+
+                area.innerHTML = `
+                    <p style="font-size:11px; color:#aaa; margin-top:0;">Cliquez sur un câble à gauche, puis sur le port correspondant à droite :</p>
+                    <div class="patch-panel-grid">
+                        <div class="wire-column" id="wire-cols">
+                            ${shuffledColors.map(c => `<div class="wire-item wire-${c}" onclick="selectWire('${c}', this)">Câble ${names[c]}</div>`).join('')}
+                        </div>
+                        <div style="font-size:24px; color:#555;">➔</div>
+                        <div class="wire-column" id="port-cols">
+                            ${colors.map(c => `<div class="port-item" data-color="${c}" onclick="connectPort('${c}', this)">Port ${names[c]}</div>`).join('')}
+                        </div>
+                    </div>
+                `;
+
+                window.selectWire = (color, el) => {
+                    document.querySelectorAll('.wire-item').forEach(w => w.classList.remove('selected'));
+                    selectedWireColor = color;
+                    el.classList.add('selected');
+                };
+
+                window.connectPort = (portColor, el) => {
+                    if (selectedWireColor === portColor && !el.classList.contains('connected')) {
+                        el.classList.add('connected');
+                        el.style.backgroundColor = getHexForColor(portColor);
+                        el.style.color = portColor === 'yellow' ? 'black' : 'white';
+                        el.innerText = `Connecté (${names[portColor]})`;
+                        connectedCount++;
+                        selectedWireColor = null;
+                        document.querySelectorAll('.wire-item').forEach(w => w.classList.remove('selected'));
+                        if (connectedCount === 4) finishMinigame(true, potentialReward);
+                    }
+                };
+            } 
+            else if (mgId === 'dust') {
+                let dustRemaining = 4;
+                area.innerHTML = `
+                    <p style="font-size:11px; color:#aaa; margin-top:0;">Maintenez le clic et survolez les 4 paquets de poussière :</p>
+                    <div class="dust-container">
+                        <div class="dust-fan">⚙️</div>
+                        <div class="dust-cloud" style="top:20px; left:30px; width:60px; height:60px;" onmouseover="cleanDust(this)"></div>
+                        <div class="dust-cloud" style="top:100px; left:180px; width:70px; height:70px;" onmouseover="cleanDust(this)"></div>
+                        <div class="dust-cloud" style="top:40px; left:260px; width:55px; height:55px;" onmouseover="cleanDust(this)"></div>
+                        <div class="dust-cloud" style="top:110px; left:70px; width:65px; height:65px;" onmouseover="cleanDust(this)"></div>
+                    </div>
+                `;
+
+                window.cleanDust = (el) => {
+                    if (el.style.opacity !== '0') {
+                        el.style.opacity = '0';
+                        el.style.transform = 'scale(0)';
+                        dustRemaining--;
+                        if (dustRemaining === 0) finishMinigame(true, potentialReward);
+                    }
+                };
+            }
+            else if (mgId === 'password') {
+                const keys = ['A', 'Z', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'];
+                let sequence = [];
+                for (let i = 0; i < 5; i++) sequence.push(keys[Math.floor(Math.random() * keys.length)]);
+                let currentIndex = 0;
+
+                const renderSeq = () => {
+                    return sequence.map((char, idx) => {
+                        return `<span class="pass-char ${idx < currentIndex ? 'done' : ''}">${char}</span>`;
+                    }).join(' ');
+                };
+
+                area.innerHTML = `
+                    <p style="font-size:11px; color:#aaa; margin-top:0;">Saisissez les lettres au clavier. Erreur = -1 sec !</p>
+                    <div class="pass-seq-display" id="pass-seq-box">${renderSeq()}</div>
+                    <p style="text-align:center; font-size:11px; color:#00ff00; margin-top:10px;" id="pass-prog">Progression : 0 / 5</p>
+                `;
+
+                window.onkeydown = (e) => {
+                    if (document.getElementById('event-modal').classList.contains('active')) {
+                        let pressedKey = e.key.toUpperCase();
+                        if (pressedKey === sequence[currentIndex]) {
+                            currentIndex++;
+                            document.getElementById('pass-seq-box').innerHTML = renderSeq();
+                            document.getElementById('pass-prog').innerText = `Progression : ${currentIndex} / 5`;
+                            if (currentIndex === sequence.length) {
+                                window.onkeydown = null;
+                                finishMinigame(true, potentialReward);
+                            }
+                        } else if (pressedKey.length === 1 && pressedKey >= 'A' && pressedKey <= 'Z') {
+                            timeRemain = Math.max(0, timeRemain - 1);
+                            const timerSpan = document.getElementById('mg-timer-num');
+                            if (timerSpan) timerSpan.innerText = timeRemain;
+                        }
+                    }
+                };
+            }
+            else if (mgId === 'taskmgr') {
+                area.innerHTML = `
+                    <p style="font-size:11px; color:#aaa; margin-top:0;">Fermez la tâche 'malware.exe' dans la liste :</p>
+                    <div class="task-list-box">
+                        <div class="task-item"><span>svchost.exe</span><span style="color:#107c10;">OK</span></div>
+                        <div class="task-item"><span>explorer.exe</span><span style="color:#107c10;">OK</span></div>
+                        <div class="task-item" style="border:1px solid red;">
+                            <span style="color:red; font-weight:bold;">malware.exe</span>
+                            <button class="btn-danger" onclick="killMalware()">Fin de tâche</button>
+                        </div>
+                        <div class="task-item"><span>chrome.exe</span><span style="color:#107c10;">OK</span></div>
+                    </div>
+                `;
+
+                window.killMalware = () => { finishMinigame(true, potentialReward); };
+            }
+            else if (mgId === 'firewall') {
+                let currentPacket = 0;
+                const packets = [
+                    { text: "Trafic Légitime - Port 443 (HTTPS)", isSafe: true },
+                    { text: "Attaque DDoS - Port 8080 (Inconnu)", isSafe: false },
+                    { text: "Trafic Légitime - Port 80 (HTTP)", isSafe: true }
+                ];
+
+                const renderPacket = () => {
+                    let p = packets[currentPacket];
+                    area.innerHTML = `
+                        <p style="font-size:11px; color:#aaa; margin-top:0;">Filtrage pare-feu (${currentPacket+1}/3) :</p>
+                        <div class="firewall-pkt">${p.text}</div>
+                        <div style="display:flex; gap:10px;">
+                            <button class="modal-btn" style="background:#107c10; color:white; text-align:center;" onclick="handleFwAction(true)">✅ ACCEPT</button>
+                            <button class="modal-btn" style="background:#d83b01; color:white; text-align:center;" onclick="handleFwAction(false)">❌ DROP</button>
+                        </div>
+                    `;
+                };
+
+                window.handleFwAction = (accept) => {
+                    let p = packets[currentPacket];
+                    if (p.isSafe === accept) {
+                        currentPacket++;
+                        if (currentPacket >= packets.length) finishMinigame(true, potentialReward);
+                        else renderPacket();
+                    } else {
+                        finishMinigame(false, 0);
+                    }
+                };
+
+                renderPacket();
+            }
+        }
+
+        function getHexForColor(c) {
+            if (c === 'blue') return '#0078d7';
+            if (c === 'red') return '#d83b01';
+            if (c === 'yellow') return '#ffb900';
+            if (c === 'green') return '#107c10';
+            return '#333';
+        }
+
+        function finishMinigame(success, reward) {
+            if (minigameTimerInterval) clearInterval(minigameTimerInterval);
+            window.onkeydown = null;
+            document.getElementById('event-modal').classList.remove('active');
+
+            if (success) {
+                money += reward;
+                totalMoneyEarned += reward;
+                minigamesWonCount++;
+                spawnToastNotification("Mini-Jeu Réussi !", `Bravo ! Vous avez réparé l'équipement et gagné +${reward.toLocaleString()} $ !`, "success", true);
+                checkAchievements();
+            } else {
+                let penalty = Math.max(200, Math.floor(money * 0.02));
+                money = Math.max(0, money - penalty);
+                spawnToastNotification("Temps Écoulé / Erreur !", `Échec de l'intervention. Vous avez payé -${penalty.toLocaleString()} $ de frais.`, "warning");
+            }
+            updateUI();
+        }
+
+        function triggerRandomEvent() {
+            if (companyLevel < 2) return;
+
+            // 50% DE CHANCES DE DÉCLENCHER UN MINI-JEU
+            if (Math.random() < 0.5) {
+                let mgType = MINIGAMES_TYPES[Math.floor(Math.random() * MINIGAMES_TYPES.length)];
+                triggerMinigamePrompt(mgType);
+                return;
+            }
+
+            // ÉQUILIBRAGE GRÈVE : 1% DE CHANCE + COOLDOWN DE 30 MIN
+            let strikeWeight = 0;
+            if (hiredTechs.some(t => t.level === 5) && strikeCooldownTimer <= 0) {
+                strikeWeight = 1;
+            }
+
+            const RANDOM_EVENTS = [
+                {
+                    title: "🥕 Incident de la Carotte !",
+                    desc: "Un rongeur masqué a grignoté un câble réseau principal avec une carotte ! La connectivité est perturbée.",
+                    weight: 30, // Événement plus fréquent
+                    options: [
+                        { text: "🛠️ Remplacer le câble réseau (-200 $)", action: () => { money = Math.max(0, money - 200); updateUI(); } },
+                        { text: "🥕 Récupérer la carotte (Découverte d'un collectible rare !)", action: () => { 
+                            if (!unlockedCollectibles.includes("carrot")) {
+                                unlockedCollectibles.push("carrot");
+                                spawnToastNotification("Objet Découvert : Carotte 🥕", "Ajoutée à votre armoire de souvenirs ! (+5% Revenue)", "success", true);
+                                renderCollectibles(); checkAchievements(); updateUI();
+                            }
+                        } }
+                    ]
+                },
+                {
+                    title: "🗣️ Manager contre les Bavardages !",
+                    desc: "Le Happiness Manager organise un tour de table contre la perte de temps à la machine à café.",
+                    weight: 30, // Événement plus fréquent
+                    options: [
+                        { text: "☕ Offrir des pauses structurées (+1 Énergie aux techs)", action: () => {
+                            hiredTechs.forEach(t => { if(t.level !== 5) t.energy = Math.min(t.maxEnergy, t.energy + 1); });
+                            renderHiredTechs(); updateUI();
+                        } }
+                    ]
+                },
+                {
+                    title: "📢 Réunion d'équipe d'urgence",
+                    desc: "Votre équipe se réunit dans la salle de pause pour discuter de la stratégie.",
+                    weight: 20,
+                    options: [
+                        { text: "💵 Distribuer des primes (+1 500 $)", action: () => { 
+                            let gain = Math.floor(1500 * getCollectibleMoneyMultiplier());
+                            money += gain; totalMoneyEarned += gain; updateUI(); 
+                        } },
+                        { text: "⚡ Boost de motivation (Un tech prend 2 tickets en même temps)", action: () => { applyDoubleTicketBuff(); } }
+                    ]
+                },
+                {
+                    title: "☕ Panne critique de la Machine à Café",
+                    desc: "La machine à café est H.S. ! L'équipe menace de débrayer.",
+                    weight: 20,
+                    options: [
+                        { text: "🛠️ Réparer la machine (-500 $, +1 Énergie aux techs)", action: () => { 
+                            money = Math.max(0, money - 500); 
+                            hiredTechs.forEach(t => { if(t.level !== 5) t.energy = Math.min(t.maxEnergy, t.energy + 1); });
+                            renderHiredTechs(); updateUI(); 
+                        } },
+                        { text: "🍵 Servir du thé glacé (+500 $ économisés, mais -1 énergie aux techs)", action: () => { 
+                            let gain = Math.floor(500 * getCollectibleMoneyMultiplier());
+                            money += gain; totalMoneyEarned += gain; 
+                            hiredTechs.forEach(t => { if(t.level !== 5) t.energy = Math.max(0, t.energy - 1); }); 
+                            renderHiredTechs(); updateUI(); 
+                        } }
+                    ]
+                },
+                {
+                    title: "🪧 GRÈVE GÉNÉRALE DES LÉGENDES IT (5 Min) !",
+                    desc: "Tous vos Techniciens Légendaires (Niveau 5) se sont syndicalisés pour réclamer de meilleurs serveurs et ont posé leurs claviers pendant 5 minutes !",
+                    weight: strikeWeight,
+                    options: [
+                        { text: "Constater le débrayage (Grève de 5 min)", action: () => {
+                            strikeCooldownTimer = 1800;
+                            hiredTechs.forEach(t => {
+                                if (t.level === 5) {
+                                    t.isStriking = true;
+                                    t.strikeTimer = 300;
+                                    incidents.forEach(inc => {
+                                        if (inc.assignedTech && inc.assignedTech.id === t.id) {
+                                            inc.assignedTech = null;
+                                            inc.progress = 0;
+                                        }
+                                    });
+                                    t.assignedIncidentId = null;
+                                    t.assignedIncidentId2 = null;
+                                }
+                            });
+                            renderHiredTechs();
+                            renderIncidents();
+                            spawnToastNotification("Grève Syndicale", "Vos techs niveau 5 sont en grève pour 5 minutes !", "warning");
+                        }}
+                    ]
+                }
+            ];
+
+            const totalWeight = RANDOM_EVENTS.reduce((sum, ev) => sum + ev.weight, 0);
+            if (totalWeight <= 0) return;
+
+            let rand = Math.random() * totalWeight;
+            let ev = RANDOM_EVENTS[0];
+
+            for (let e of RANDOM_EVENTS) {
+                if (rand < e.weight) { ev = e; break; }
+                rand -= e.weight;
+            }
+            
+            document.getElementById('event-title').innerText = ev.title;
+            document.getElementById('event-desc').innerHTML = ev.desc;
+            document.getElementById('minigame-container').innerHTML = "";
+            
+            const optsContainer = document.getElementById('event-options');
+            optsContainer.innerHTML = "";
+
+            ev.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = "modal-btn";
+                btn.innerText = opt.text;
+                btn.onclick = () => {
+                    opt.action();
+                    document.getElementById('event-modal').classList.remove('active');
+                };
+                optsContainer.appendChild(btn);
+            });
+
+            document.getElementById('event-modal').classList.add('active');
+        }
+
+        function applyDoubleTicketBuff() {
+            if (hiredTechs.length > 0) {
+                const target = hiredTechs[Math.floor(Math.random() * hiredTechs.length)];
+                target.canTakeTwo = true;
+                renderHiredTechs();
+            }
+        }
+
+        function scheduleRandomEvents() {
+            const delay = Math.floor(Math.random() * 60000) + 60000; 
+            setTimeout(() => { triggerRandomEvent(); scheduleRandomEvents(); }, delay);
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('techStatsChart').getContext('2d');
+            techChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Aucun technicien'],
+                    datasets: [{ data: [1], backgroundColor: ['#e1e1e1', '#0078d7', '#107c10', '#ff8c00', '#d83b01', '#8e8e8e', '#00b7c3'] }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+            });
+        }
+
+        function updateChart() {
+            if (!techChart) return;
+            if (hiredTechs.length === 0) {
+                techChart.data.labels = ['Aucun technicien'];
+                techChart.data.datasets[0].data = [1];
+            } else {
+                techChart.data.labels = hiredTechs.map(t => t.name + " (" + t.resolvedCount + ")");
+                techChart.data.datasets[0].data = hiredTechs.map(t => t.resolvedCount);
+            }
+            techChart.update();
+        }
+
+        function assignTechToRepairVM(vmIndex) {
+            const eligible = hiredTechs.filter(t => t.level >= 3 && !t.isStriking && t.energy > 0 && !vmStates.some(v => v.repairTech && v.repairTech.id === t.id));
+            if (eligible.length === 0) {
+                alert("Aucun technicien de Niveau 3 ou plus (Admin Sys / Cloud / Légende) n'est libre pour dépanner la VM !");
+                return;
+            }
+            const tech = eligible[0];
+            vmStates[vmIndex].repairTech = tech;
+            vmStates[vmIndex].repairTimer = 10;
+            spawnToastNotification("Maintenance VM engagée", `${tech.name} est affecté à la réparation de SRV-VM-0${vmIndex+1}.`, "info");
+            updateVMList();
+            renderHiredTechs();
+        }
+
+        function updateVMList() {
+            const tbody = document.getElementById('vm-list-body');
+            const crashBadge = document.getElementById('badge-crashed-vms');
+            const coolingBadge = document.getElementById('hyperv-cooling-badge');
+            if (!tbody) return;
+
+            if (hasAdvancedCooling) {
+                coolingBadge.style.display = "inline-block";
+            } else {
+                coolingBadge.style.display = "none";
+            }
+
+            let crashedCount = vmStates.filter(v => v.isCrashed).length;
+            if (crashedCount > 0) {
+                crashBadge.style.display = "inline-block";
+                crashBadge.innerText = `${crashedCount} CRASH`;
+            } else {
+                crashBadge.style.display = "none";
+            }
+
+            tbody.innerHTML = "";
+            if (vmCount === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#888;">Aucune VM installée. Allez dans le Magasin pour en acheter.</td></tr>`;
+                return;
+            }
+
+            const activeOS = WINDOWS_VERSIONS[currentWindowsVersion];
+
+            for (let i = 0; i < vmCount; i++) {
+                const hasRam = (i + 1) <= ramCount;
+                const state = vmStates[i] || { isCrashed: false, repairTech: null, repairTimer: 0 };
+                const tr = document.createElement('tr');
+
+                let statusHtml = "";
+                let actionHtml = "";
+
+                if (state.isCrashed) {
+                    if (state.repairTech) {
+                        statusHtml = `<span style="color:#ff8c00; font-weight:bold;">🔧 En réparation par ${state.repairTech.name} (${Math.ceil(state.repairTimer)}s)</span>`;
+                        actionHtml = `<button class="btn-action" disabled>Dépannage en cours...</button>`;
+                    } else {
+                        statusHtml = `<span style="color:#d83b01; font-weight:bold;">🖥️ CRASH (Écran bleu BSOD)</span>`;
+                        actionHtml = `<button class="btn-action" style="background:#d83b01; color:white; font-weight:bold;" onclick="assignTechToRepairVM(${i})">⚡ Affecter Tech Lvl 3+</button>`;
+                    }
+                } else {
+                    statusHtml = `<span style="color:#107c10;">En cours d'exécution</span>`;
+                    actionHtml = `<span style="color:#888;">Opérationnel</span>`;
+                }
+
+                let baseProd = 1 + activeOS.bonus;
+                let finalProd = hasRam ? baseProd + 1 : baseProd;
+
+                tr.innerHTML = `
+                    <td><strong>SRV-VM-0${i+1}</strong></td>
+                    <td style="font-weight:bold; color:#0078d7;">${activeOS.name}</td>
+                    <td>${statusHtml}</td>
+                    <td>${hasRam ? '<span style="color:#107c10; font-weight:bold;">+16 Go DDR4 (+1 DATA)</span>' : '<span style="color:#888;">Standard</span>'}</td>
+                    <td>${state.isCrashed ? '<span style="color:red;">0 Mo (HS)</span>' : `+${finalProd} Mo / cycle`}</td>
+                    <td>${actionHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        function updateInvestmentsUI() {
+            const stockGrid = document.getElementById('stock-market-grid');
+            if (!stockGrid) return;
+            stockGrid.innerHTML = "";
+
+            FIXED_STOCK_KEYS.forEach(key => {
+                let s = stocks[key];
+                let totalIncomePerCycle = Math.floor(s.count * s.dividend * getCollectibleMoneyMultiplier());
+                let card = document.createElement('div');
+                card.className = "candidate-card";
+                card.innerHTML = `
+                    <div>
+                        <h3>${s.name}</h3>
+                        <p style="color:var(--text-muted); font-size:11px;">Dividendes unitaires : +${s.dividend} $ / cycle</p>
+                        <p>Actions possédées : <strong>${s.count}</strong></p>
+                        <p style="color:#107c10; font-weight:bold; font-size:12px;">Gains / Cycle : +${totalIncomePerCycle.toLocaleString()} $</p>
+                    </div>
+                    <div>
+                        <p><strong>Prix :</strong> ${s.cost.toLocaleString()} $</p>
+                        <button class="buy-btn" style="width:100%;" ${money < s.cost ? 'disabled' : ''} onclick="buyStock('${key}')">Acheter Action</button>
+                    </div>
+                `;
+                stockGrid.appendChild(card);
+            });
+
+            const aiGrid = document.getElementById('ai-tech-grid');
+            if (!aiGrid) return;
+            aiGrid.innerHTML = "";
+
+            Object.keys(aiTechs).forEach(key => {
+                let ai = aiTechs[key];
+                let card = document.createElement('div');
+                card.className = "candidate-card";
+                card.innerHTML = `
+                    <div>
+                        <h3>${ai.name}</h3>
+                        <p style="color:var(--text-muted); font-size:11px;">+${ai.dataBonus} DATA par cycle | Vitesse Techs +${ai.speedBonusPct * 100}%</p>
+                        <p>Statut : <strong>${ai.bought ? 'ACTIF' : 'NON POSSÉDÉ'}</strong></p>
+                    </div>
+                    <div>
+                        <p><strong>Prix :</strong> ${ai.cost.toLocaleString()} $</p>
+                        <button class="buy-btn" style="width:100%;" ${ai.bought || money < ai.cost ? 'disabled' : ''} onclick="buyAITech('${key}')">${ai.bought ? 'Acquis' : 'Déployer Modèle'}</button>
+                    </div>
+                `;
+                aiGrid.appendChild(card);
+            });
+        }
+
+        function exportSave() {
+            const gameState = {
+                money, data, clickPower, companyLevel, currentWindowsVersion, hasAdminBot, hasFastHelpdesk, hasUltraHelpdesk, hasAdvancedCooling, isAdminUnlocked,
+                totalMoneyEarned, totalDataProduced, totalIncidentsResolved, minigamesWonCount, unlockedAchievements, unlockedCollectibles,
+                vmCount, vmCost, clickUpgradeCost, ramCount, ramCost, dcCount, dcCost, rhCount, hmCount,
+                stocks, aiTechs, vmStates, vmGlobalCrashCooldown, strikeCooldownTimer,
+                hiredTechs: hiredTechs.map(t => ({
+                    id: t.id, name: t.name, level: t.level, levelName: t.levelName,
+                    maxEnergy: t.maxEnergy, energy: t.energy, baseBreakTime: t.baseBreakTime,
+                    breakTimer: t.breakTimer, cost: t.cost, colorClass: t.colorClass, speedMult: t.speedMult || 1.0,
+                    canTakeTwo: t.canTakeTwo, breakDebuffMultiplier: t.breakDebuffMultiplier || 1.0,
+                    nextBreakIncrease: t.nextBreakIncrease || 1.0, resolvedCount: t.resolvedCount,
+                    isStriking: t.isStriking || false, strikeTimer: t.strikeTimer || 0, cooldownTimer: t.cooldownTimer || 0
+                }))
+            };
+            const jsonStr = JSON.stringify(gameState);
+            let encoded = "";
+            try { encoded = btoa(encodeURIComponent(jsonStr)); } catch (e) { encoded = btoa(jsonStr); }
+            prompt("Copiez votre code de sauvegarde :", encoded);
+        }
+
+        function importSave() {
+            let code = prompt("Collez votre code de sauvegarde ici :");
+            if (!code) return;
+            code = code.trim().replace(/^["']|["']$/g, '');
+            let jsonStr = "";
+            try { jsonStr = decodeURIComponent(atob(code)); } catch (e1) {
+                try { jsonStr = atob(code); } catch (e2) { alert("Erreur de décodage."); return; }
+            }
+            try {
+                const dataObj = JSON.parse(jsonStr);
+                money = Number(dataObj.money) || 0; data = Number(dataObj.data) || 0;
+                clickPower = Number(dataObj.clickPower) || 1; companyLevel = Number(dataObj.companyLevel) || 1;
+                currentWindowsVersion = Number(dataObj.currentWindowsVersion) || 0;
+                hasAdminBot = Boolean(dataObj.hasAdminBot); hasFastHelpdesk = Boolean(dataObj.hasFastHelpdesk);
+                hasUltraHelpdesk = Boolean(dataObj.hasUltraHelpdesk);
+                hasAdvancedCooling = Boolean(dataObj.hasAdvancedCooling);
+                isAdminUnlocked = Boolean(dataObj.isAdminUnlocked);
+                totalMoneyEarned = Number(dataObj.totalMoneyEarned) || money;
+                totalDataProduced = Number(dataObj.totalDataProduced) || data;
+                totalIncidentsResolved = Number(dataObj.totalIncidentsResolved) || 0;
+                minigamesWonCount = Number(dataObj.minigamesWonCount) || 0;
+                unlockedAchievements = Array.isArray(dataObj.unlockedAchievements) ? dataObj.unlockedAchievements : [];
+                unlockedCollectibles = Array.isArray(dataObj.unlockedCollectibles) ? dataObj.unlockedCollectibles : [];
+                vmCount = Number(dataObj.vmCount) || 0; vmCost = Number(dataObj.vmCost) || 50;
+                clickUpgradeCost = Number(dataObj.clickUpgradeCost) || 50;
+                ramCount = Number(dataObj.ramCount) || 0; ramCost = Number(dataObj.ramCost) || 300;
+                dcCount = Number(dataObj.dcCount) || 0; dcCost = Number(dataObj.dcCost) || 5000;
+                rhCount = Number(dataObj.rhCount) || 0; hmCount = Number(dataObj.hmCount) || 0;
+                vmGlobalCrashCooldown = Number(dataObj.vmGlobalCrashCooldown) || 0;
+                strikeCooldownTimer = Number(dataObj.strikeCooldownTimer) || 0;
+
+                if (dataObj.stocks) stocks = dataObj.stocks;
+                if (dataObj.aiTechs) aiTechs = dataObj.aiTechs;
+                if (Array.isArray(dataObj.vmStates)) vmStates = dataObj.vmStates;
+
+                hiredTechs = (dataObj.hiredTechs || []).map(t => {
+                    const levelCfg = TECH_LEVELS[t.level] || TECH_LEVELS[1];
+                    return {
+                        id: t.id || (Date.now() + Math.random()), name: t.name || "Technicien",
+                        level: t.level || 1, levelName: t.levelName || levelCfg.name,
+                        maxEnergy: (t.level === 5) ? Infinity : (t.maxEnergy || levelCfg.maxEnergy),
+                        energy: (t.level === 5) ? Infinity : ((t.energy !== undefined) ? t.energy : levelCfg.maxEnergy),
+                        baseBreakTime: (t.level === 5) ? 0 : (t.baseBreakTime || levelCfg.breakTime),
+                        breakTimer: t.breakTimer || 0, cost: t.cost || levelCfg.cost,
+                        colorClass: t.colorClass || levelCfg.colorClass, speedMult: t.speedMult || levelCfg.speedMult || 1.0,
+                        assignedIncidentId: null, assignedIncidentId2: null, canTakeTwo: Boolean(t.canTakeTwo),
+                        breakDebuffMultiplier: t.breakDebuffMultiplier || 1.0, nextBreakIncrease: t.nextBreakIncrease || 1.0,
+                        resolvedCount: t.resolvedCount || 0,
+                        isStriking: t.isStriking || false, strikeTimer: t.strikeTimer || 0, cooldownTimer: t.cooldownTimer || 0
+                    };
+                });
+                incidents = []; currentCycleTime = Math.max(0.5, baseCycleTime - (vmCount * 0.1));
+                generateCandidatesList(); updateVMList(); renderHiredTechs(); renderAchievements(); renderCollectibles(); updateChart();
+                updateAdminUI(); updateInvestmentsUI(); updateUI();
+                alert("Sauvegarde importée avec succès !");
+            } catch (e) { alert("Le format JSON est altéré."); }
+        }
+
+        function resetGameProgress() {
+            if (confirm("Voulez-vous VRAIMENT réinitialiser votre progression ?")) {
+                money = 0; data = 0; clickPower = 1; companyLevel = 1; currentWindowsVersion = 0;
+                hasAdminBot = false; hasFastHelpdesk = false; hasUltraHelpdesk = false; hasAdvancedCooling = false; isAdminUnlocked = false;
+                totalMoneyEarned = 0; totalDataProduced = 0; totalIncidentsResolved = 0; minigamesWonCount = 0;
+                unlockedAchievements = []; unlockedCollectibles = []; vmCount = 0; vmCost = 50; clickUpgradeCost = 50;
+                ramCount = 0; ramCost = 300; dcCount = 0; dcCost = 5000;
+                rhCount = 0; hmCount = 0; hiredTechs = []; incidents = []; vmStates = []; vmGlobalCrashCooldown = 0; strikeCooldownTimer = 0;
+                stocks = {
+                    google: { name: "Google (GOOGL)", count: 0, cost: 2500, dividend: 30 },
+                    nvidia: { name: "Nvidia (NVDA)", count: 0, cost: 3000, dividend: 35 },
+                    claude: { name: "Anthropic Claude", count: 0, cost: 4000, dividend: 50 },
+                    chatgpt: { name: "OpenAI ChatGPT", count: 0, cost: 5000, dividend: 65 }
+                };
+                aiTechs = {
+                    copilot: { name: "Copilot IT", bought: false, cost: 6000, dataBonus: 3, speedBonusPct: 0.15 },
+                    claudeDev: { name: "Claude 3.5 Sonnet Agent", bought: false, cost: 12000, dataBonus: 8, speedBonusPct: 0.30 }
+                };
+                generateCandidatesList(); updateVMList(); renderHiredTechs(); renderAchievements(); renderCollectibles(); updateChart();
+                updateAdminUI(); updateInvestmentsUI(); updateUI();
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('val-money').innerText = money.toLocaleString();
+            document.getElementById('val-data').innerText = data.toLocaleString();
+            document.getElementById('click-power').innerText = Math.floor(clickPower * getCollectibleMoneyMultiplier());
+            document.getElementById('stat-kpi-money').innerText = totalMoneyEarned.toLocaleString() + " $";
+            document.getElementById('stat-kpi-data').innerText = totalDataProduced.toLocaleString() + " Mo";
+            document.getElementById('stat-kpi-incidents').innerText = totalIncidentsResolved.toLocaleString();
+            document.getElementById('admin-bot-status').style.display = hasAdminBot ? 'block' : 'none';
+
+            const lvlBadge = document.getElementById('company-lvl-display');
+            document.getElementById('company-name-text').innerText = `Entreprise Niveau ${companyLevel}`;
+            
+            let starsSpan = document.getElementById('company-stars-span');
+            let starsCount = getStarsCount();
+            let starsHtml = "";
+            for (let i = 0; i < starsCount; i++) { starsHtml += '<span class="star-icon">★</span>'; }
+            starsSpan.innerHTML = starsHtml;
+
+            if (companyLevel >= 5) {
+                lvlBadge.className = "company-lvl-badge rainbow-badge";
+                lvlBadge.style.backgroundColor = "";
+            } else {
+                lvlBadge.className = "company-lvl-badge";
+                lvlBadge.style.backgroundColor = COMPANY_LEVEL_COLORS[companyLevel] || "#0078d7";
+            }
+
+            document.getElementById('dash-lvl-text').innerText = `Niveau ${companyLevel}`;
+            let nextCompanyCost = COMPANY_UPGRADE_COSTS[companyLevel];
+            document.getElementById('dash-next-lvl-cost').innerText = nextCompanyCost ? nextCompanyCost.toLocaleString() : "MAX";
+            document.getElementById('btn-upgrade-company').disabled = !nextCompanyCost || data < nextCompanyCost;
+
+            const toggleNav = (id, unlock, lockTagId) => {
+                const el = document.getElementById(id);
+                const tag = document.getElementById(lockTagId);
+                if (unlock) { el.classList.remove('locked-nav'); if (tag) tag.style.display = 'none'; }
+                else { el.classList.add('locked-nav'); if (tag) tag.style.display = 'inline-block'; }
+            };
+            toggleNav('nav-incidents', companyLevel >= 2, 'lock-tag-incidents');
+            toggleNav('nav-recruitment', companyLevel >= 2, 'lock-tag-recruitment');
+            toggleNav('nav-rh', companyLevel >= 3, 'lock-tag-rh');
+            toggleNav('nav-happiness', companyLevel >= 2, 'lock-tag-happiness');
+            toggleNav('nav-investments', companyLevel >= 4, 'lock-tag-investments');
+
+            document.getElementById('incidents-lock-msg').style.display = companyLevel < 2 ? 'block' : 'none';
+            document.getElementById('incidents-content').style.display = companyLevel >= 2 ? 'block' : 'none';
+            document.getElementById('recruitment-lock-msg').style.display = companyLevel < 2 ? 'block' : 'none';
+            document.getElementById('recruitment-content').style.display = companyLevel >= 2 ? 'block' : 'none';
+            document.getElementById('rh-lock-msg').style.display = companyLevel < 3 ? 'block' : 'none';
+            document.getElementById('rh-content').style.display = companyLevel >= 3 ? 'block' : 'none';
+            document.getElementById('happiness-lock-msg').style.display = companyLevel < 2 ? 'block' : 'none';
+            document.getElementById('happiness-content').style.display = companyLevel >= 2 ? 'block' : 'none';
+            document.getElementById('investments-lock-msg').style.display = companyLevel < 4 ? 'block' : 'none';
+            document.getElementById('investments-content').style.display = companyLevel >= 4 ? 'block' : 'none';
+
+            let activeVMs = 0;
+            let activeRAMs = 0;
+            for (let i = 0; i < vmCount; i++) {
+                if (!vmStates[i] || !vmStates[i].isCrashed) {
+                    activeVMs++;
+                    if ((i + 1) <= ramCount) activeRAMs++;
+                }
+            }
+
+            const activeOS = WINDOWS_VERSIONS[currentWindowsVersion];
+            let baseVmProd = 1 + activeOS.bonus;
+            let aiDataBonus = (aiTechs.copilot.bought ? aiTechs.copilot.dataBonus : 0) + (aiTechs.claudeDev.bought ? aiTechs.claudeDev.dataBonus : 0);
+            let dataPerCycle = (activeVMs - activeRAMs) * baseVmProd + (activeRAMs * (baseVmProd + 1)) + (dcCount * 5) + aiDataBonus;
+            
+            document.getElementById('stat-vm-count').innerText = `${activeVMs} / ${vmCount}`;
+            document.getElementById('stat-os-version').innerText = `${activeOS.name} (+${activeOS.bonus} DATA)`;
+            document.getElementById('stat-ram-count').innerText = ramCount;
+            document.getElementById('stat-dc-count').innerText = dcCount;
+            document.getElementById('stat-speed').innerText = currentCycleTime.toFixed(1) + " sec / cycle";
+            document.getElementById('stat-prod-rate').innerText = dataPerCycle + " Mo";
+
+            document.getElementById('vm-cost').innerText = vmCost.toLocaleString();
+            document.getElementById('click-upgrade-cost').innerText = clickUpgradeCost.toLocaleString();
+            document.getElementById('admin-bot-cost').innerText = hasAdminBot ? "POSSÉDÉ" : adminBotCost.toLocaleString();
+            document.getElementById('fast-helpdesk-cost').innerText = hasFastHelpdesk ? "POSSÉDÉ" : fastHelpdeskCost.toLocaleString();
+            document.getElementById('ultra-helpdesk-cost').innerText = hasUltraHelpdesk ? "POSSÉDÉ" : ultraHelpdeskCost.toLocaleString();
+            document.getElementById('cooling-cost').innerText = hasAdvancedCooling ? "POSSÉDÉ" : coolingCost.toLocaleString();
+            document.getElementById('ram-cost').innerText = ramCost.toLocaleString();
+            document.getElementById('dc-cost').innerText = dcCost.toLocaleString();
+
+            document.getElementById('btn-buy-vm').disabled = money < vmCost;
+            document.getElementById('btn-buy-click').disabled = money < clickUpgradeCost;
+            document.getElementById('btn-buy-admin-bot').disabled = companyLevel < 2 || hasAdminBot || money < adminBotCost;
+            document.getElementById('btn-buy-fast-helpdesk').disabled = companyLevel < 3 || hasFastHelpdesk || money < fastHelpdeskCost;
+            document.getElementById('btn-buy-ultra-helpdesk').disabled = companyLevel < 4 || hasUltraHelpdesk || money < ultraHelpdeskCost;
+            document.getElementById('btn-buy-cooling').disabled = companyLevel < 4 || hasAdvancedCooling || money < coolingCost;
+            document.getElementById('btn-buy-ram').disabled = companyLevel < 3 || ramCount >= vmCount || money < ramCost;
+            document.getElementById('btn-buy-dc').disabled = companyLevel < 5 || money < dcCost;
+
+            document.getElementById('rh-count').innerText = rhCount;
+            document.getElementById('rh-slots').innerText = 5 + (rhCount * 5);
+            document.getElementById('rh-max-tech-lvl').innerText = `Niveau ${getMaxTechLevelAvailable()}`;
+            let nextRhCost = Math.floor(rhBaseCost * Math.pow(2.2, rhCount));
+            document.getElementById('rh-cost').innerText = rhCount < rhMax ? nextRhCost.toLocaleString() : "MAX";
+            document.getElementById('btn-buy-rh').disabled = rhCount >= rhMax || money < nextRhCost;
+
+            document.getElementById('hm-count').innerText = hmCount;
+            document.getElementById('hm-bonus').innerText = `-${hmCount * 5}%`;
+            let nextHmCost = Math.floor(hmBaseCost * Math.pow(1.8, hmCount));
+            document.getElementById('hm-cost').innerText = hmCount < hmMax ? nextHmCost.toLocaleString() : "MAX";
+            document.getElementById('btn-buy-hm').disabled = hmCount >= hmMax || money < nextHmCost;
+
+            document.getElementById('btn-refresh-candidates').disabled = money < 1000 || companyLevel < 2;
+            const maxLvl = getMaxTechLevelAvailable();
+            document.getElementById('proba-text').innerText = maxLvl === 1 ? "Proba : Lvl 1 (97%) | Lvl 5 (3%)" : (maxLvl === 2 ? "Proba : Lvl 1 (58%) | Lvl 2 (39%) | Lvl 5 (3%)" : (maxLvl === 3 ? "Proba : Lvl 1 (48%) | Lvl 2 (30%) | Lvl 3 (19%) | Lvl 5 (3%)" : "Proba : Lvl 1 (45%) | Lvl 2 (27%) | Lvl 3 (15%) | Lvl 4 (10%) | Lvl 5 (3%)"));
+            document.getElementById('hyperv-vm-count').innerText = vmCount;
+
+            renderWindowsOSShop();
+            updateInvestmentsUI();
+            checkPromotionAvailability();
+        }
+
+        const tickInterval = 100;
+        let adminBotTimer = 0;
+
+        setInterval(() => {
+            const now = Date.now();
+            const deltaSec = (now - lastTickTimestamp) / 1000;
+            lastTickTimestamp = now;
+
+            if (vmGlobalCrashCooldown > 0) {
+                vmGlobalCrashCooldown -= deltaSec;
+                if (vmGlobalCrashCooldown < 0) vmGlobalCrashCooldown = 0;
+            }
+
+            if (strikeCooldownTimer > 0) {
+                strikeCooldownTimer -= deltaSec;
+                if (strikeCooldownTimer < 0) strikeCooldownTimer = 0;
+            }
+
+            if (hasAdminBot) {
+                adminBotTimer += deltaSec;
+                if (adminBotTimer >= 1.0) {
+                    let clicks = Math.floor(adminBotTimer);
+                    adminBotTimer -= clicks;
+                    let earned = Math.floor(clicks * clickPower * getCollectibleMoneyMultiplier());
+                    money += earned; totalMoneyEarned += earned; updateUI();
+                }
+            }
+
+            if (vmCount > 0 || dcCount > 0 || aiTechs.copilot.bought || aiTechs.claudeDev.bought) {
+                cycleProgress += deltaSec;
+                if (cycleProgress >= currentCycleTime) {
+                    let cyclesCompleted = Math.floor(cycleProgress / currentCycleTime);
+                    cycleProgress -= (cyclesCompleted * currentCycleTime);
+
+                    if (getMaxTechLevelAvailable() >= 3 && vmGlobalCrashCooldown <= 0 && !hasAdvancedCooling) {
+                        for (let i = 0; i < vmCount; i++) {
+                            if (!vmStates[i]) vmStates[i] = { isCrashed: false, repairTech: null, repairTimer: 0 };
+                            if (!vmStates[i].isCrashed && Math.random() < 0.005) {
+                                vmStates[i].isCrashed = true;
+                                vmGlobalCrashCooldown = 1800;
+                                spawnToastNotification("CRASH SERVEUR BSOD !", `La machine virtuelle SRV-VM-0${i+1} a planté ! Vos autres VMs sont immunisées pendant 30 min.`, "warning");
+                                break;
+                            }
+                        }
+                    }
+
+                    let activeVMs = 0;
+                    let activeRAMs = 0;
+                    for (let i = 0; i < vmCount; i++) {
+                        if (vmStates[i] && !vmStates[i].isCrashed) {
+                            activeVMs++;
+                            if ((i + 1) <= ramCount) activeRAMs++;
+                        }
+                    }
+
+                    const activeOS = WINDOWS_VERSIONS[currentWindowsVersion];
+                    let baseVmProd = 1 + activeOS.bonus;
+                    let aiDataBonus = (aiTechs.copilot.bought ? aiTechs.copilot.dataBonus : 0) + (aiTechs.claudeDev.bought ? aiTechs.claudeDev.dataBonus : 0);
+                    let producedPerCycle = (activeVMs - activeRAMs) * baseVmProd + (activeRAMs * (baseVmProd + 1)) + (dcCount * 5) + aiDataBonus;
+                    let totalProduced = cyclesCompleted * producedPerCycle;
+                    data += totalProduced; totalDataProduced += totalProduced;
+
+                    let totalDividends = 0;
+                    Object.keys(stocks).forEach(k => { totalDividends += stocks[k].count * stocks[k].dividend; });
+                    if (totalDividends > 0) {
+                        let earnedDivs = Math.floor(cyclesCompleted * totalDividends * getCollectibleMoneyMultiplier());
+                        money += earnedDivs; totalMoneyEarned += earnedDivs;
+                    }
+
+                    updateVMList();
+                    updateUI();
+                }
+                let pct = (cycleProgress / currentCycleTime) * 100;
+                document.getElementById('data-cycle-bar').style.width = Math.min(100, pct) + "%";
+            } else {
+                document.getElementById('data-cycle-bar').style.width = "0%";
+            }
+
+            for (let i = 0; i < vmCount; i++) {
+                let st = vmStates[i];
+                if (st && st.isCrashed && st.repairTech) {
+                    st.repairTimer -= deltaSec;
+                    if (st.repairTimer <= 0) {
+                        st.isCrashed = false;
+                        st.repairTech = null;
+                        st.repairTimer = 0;
+                        spawnToastNotification("VM Dépannée", `SRV-VM-0${i+1} est à nouveau opérationnelle !`, "success");
+                        updateVMList();
+                        renderHiredTechs();
+                    }
+                }
+            }
+
+            let techListChanged = false;
+            hiredTechs.forEach(tech => {
+                if (tech.cooldownTimer > 0) {
+                    tech.cooldownTimer -= deltaSec;
+                    if (tech.cooldownTimer <= 0) tech.cooldownTimer = 0;
+                    techListChanged = true;
+                }
+                if (tech.isStriking) {
+                    tech.strikeTimer -= deltaSec;
+                    if (tech.strikeTimer <= 0) {
+                        tech.isStriking = false;
+                        tech.strikeTimer = 0;
+                        spawnToastNotification("Fin de la grève", `${tech.name} reprend le travail !`, "info");
+                    }
+                    techListChanged = true;
+                } else if (tech.energy === 0 && tech.level !== 5) {
+                    tech.breakTimer += deltaSec;
+                    const actualBreakTime = tech.baseBreakTime * (1 - (hmCount * 0.05)) * (tech.breakDebuffMultiplier || 1.0) * (tech.nextBreakIncrease || 1.0);
+                    if (tech.breakTimer >= actualBreakTime) {
+                        tech.energy = tech.maxEnergy; tech.breakTimer = 0; tech.nextBreakIncrease = 1.0;
+                    }
+                    techListChanged = true;
+                }
+            });
+            if (techListChanged) renderHiredTechs();
+
+            processIncidentAssignments();
+
+            let aiSpeedBonus = 1.0 + (aiTechs.copilot.bought ? aiTechs.copilot.speedBonusPct : 0) + (aiTechs.claudeDev.bought ? aiTechs.claudeDev.speedBonusPct : 0);
+
+            let incidentsChanged = false;
+            incidents.forEach((inc, index) => {
+                if (inc.assignedTech && !inc.assignedTech.isStriking) {
+                    const tech = inc.assignedTech;
+                    inc.progress += deltaSec * (tech.speedMult || 1.0) * aiSpeedBonus;
+                    incidentsChanged = true;
+                    if (inc.progress >= inc.duration) {
+                        let rewardFinal = Math.floor(inc.reward * getCollectibleMoneyMultiplier());
+                        money += rewardFinal; 
+                        totalMoneyEarned += rewardFinal; 
+                        totalIncidentsResolved++;
+                        tech.resolvedCount++;
+                        tech.cooldownTimer = 5;
+
+                        tryDropCollectible();
+
+                        if (tech.assignedIncidentId === inc.id) tech.assignedIncidentId = null;
+                        else if (tech.assignedIncidentId2 === inc.id) tech.assignedIncidentId2 = null;
+                        
+                        if (tech.level !== 5) {
+                            tech.energy = Math.max(0, tech.energy - 1);
+                        } else {
+                            if (Math.random() < 0.01) {
+                                const techIdx = hiredTechs.findIndex(t => t.id === tech.id);
+                                if (techIdx !== -1) {
+                                    promptBurnoutRetention(tech, techIdx);
+                                    return;
+                                }
+                            }
+                        }
+
+                        incidents.splice(index, 1);
+                        renderHiredTechs(); updateChart(); checkAchievements(); updateUI();
+                    }
+                }
+            });
+            if (incidentsChanged) renderIncidents();
+        }, tickInterval);
+
+        function scheduleNextIncident() {
+            let mult = hasUltraHelpdesk ? 4 : (hasFastHelpdesk ? 2 : 1);
+            let minDelay = Math.floor((hasFastHelpdesk ? 1500 : 3000) / mult);
+            let randBonus = Math.floor((hasFastHelpdesk ? 2500 : 5000) / mult);
+            const randomDelay = Math.floor(Math.random() * randBonus) + minDelay;
+            setTimeout(() => {
+                if (incidentSpawnerStarted) spawnIncident();
+                scheduleNextIncident();
+            }, randomDelay);
+        }
+
+        initChart();
+        generateCandidatesList();
+        renderAchievements();
+        renderCollectibles();
+        scheduleRandomEvents();
+        updateAdminUI();
+        updateInvestmentsUI();
+        updateUI();
+    </script>
+</body>
+</html>
